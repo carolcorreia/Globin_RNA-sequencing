@@ -1,0 +1,306 @@
+---
+title: "Globin RNA-seq Analysis"
+output: html_notebook
+---
+
+## Working directory and RData
+***
+```{r, eval=FALSE}
+setwd("C:/Users/carol/Dropbox/CSF/Animal_Genomics/Globin")
+load("GlobinRNA-seqAnalysis.RData")
+```
+
+## Install required packages
+***
+```{r, eval=FALSE}
+source("https://bioconductor.org/biocLite.R")
+biocLite("limma")
+biocLite("edgeR")
+biocLite("AnnotationFuncs")
+biocLite("org.Bt.eg.db")
+biocLite("org.Hs.eg.db")
+biocLite("org.Ss.eg.db")
+
+
+install.packages("devtools")
+install.packages("stringr")
+install.packages("magrittr")
+install.packages("plyr")
+install.packages("dplyr")
+install.packages("ggplot2")
+```
+
+## Load required packages
+***
+```{r, eval=FALSE}
+library(edgeR)
+library(stringr)
+library(magrittr)
+library(org.Bt.eg.db)
+library(org.Hs.eg.db)
+library(org.Ss.eg.db)
+
+library(plyr)
+library(dplyr)
+library(AnnotationFuncs)
+library(devtools)
+```
+
+## Import featureCounts sense counts
+***
+Create vectors of file names:
+```{r}
+files_human <- list.files(path        =                 "C:/Users/carol/Dropbox/CSF/Animal_Genomics/Globin/human/featureCounts_human/",
+                          pattern     = "^trimmed_SRR",
+                          all.files   = TRUE,
+                          full.names  = FALSE,
+                          recursive   = FALSE,
+                          ignore.case = FALSE)
+
+files_pig <- list.files(path        = "C:/Users/carol/Dropbox/CSF/Animal_Genomics/Globin/pig/featureCounts_pig/",
+                        pattern     = "^trimmed_HI",
+                        all.files   = TRUE,
+                        full.names  = FALSE,
+                        recursive   = FALSE,
+                        ignore.case = FALSE)
+
+files_cattle <- list.files(path        =
+"C:/Users/carol/Dropbox/CSF/Animal_Genomics/Globin/cattleCounts",
+                           pattern     = "^A6",
+                           all.files   = TRUE,
+                           full.names  = FALSE,
+                           recursive   = FALSE,
+                           ignore.case = FALSE)
+```
+
+```{r}
+head(files_human)
+```
+```{r}
+length(files_human)
+```
+
+```{r}
+head(files_pig)
+```
+```{r}
+length(files_pig)
+```
+
+```{r}
+head(files_cattle)
+```
+```{r}
+length(files_cattle)
+```
+
+
+## Read data into edgeR format
+***
+```{r}
+Count_human <- readDGE(path         = "C:/Users/carol/Dropbox/CSF/Animal_Genomics/Globin/human/featureCounts_human/",
+                       files        = files_human,
+                       header       = TRUE,
+                       comment.char = "#",
+                       columns      = c(1, 7))
+
+Count_pig <- readDGE(path          = "C:/Users/carol/Dropbox/CSF/Animal_Genomics/Globin/pig/featureCounts_pig/",
+                       files        = files_pig,
+                       header       = TRUE,
+                       comment.char = "#",
+                       columns      = c(1, 7))
+
+Count_cattle <- readDGE(path        =
+"C:/Users/carol/Dropbox/CSF/Animal_Genomics/Globin/cattleCounts",
+                       files        = files_cattle,
+                       header       = TRUE,
+                       comment.char = "#",
+                       columns      = c(1, 7))
+```
+
+```{r}
+head(Count_human$samples, 3)
+```
+
+```{r}
+head(Count_human$counts, 2)
+```
+
+
+## Correct column and row names
+***
+Define pattern to be replaced
+```{r}
+str_pattern <- c("trimmed_", "_sense-counts", "-")
+```
+
+Human
+```{r}
+colnames(Count_human$counts) %<>%
+    str_replace(str_pattern[1], "") %>% str_replace(str_pattern[2], "")
+
+rownames(Count_human$counts) %<>%
+    str_replace(",MIM:.*", "") %>% 
+    str_replace(",HPRD:.*", "") %>% 
+    str_replace(",HGNC:HGNC:.*", "") %>% 
+    str_replace(",miRBase:.*", "") %>% 
+    str_replace("GeneID:", "")
+    
+rownames(Count_human$samples) %<>%
+    str_replace(str_pattern[1], "") %>% str_replace(str_pattern[2], "")
+```
+```{r}
+head(Count_human$counts, 2)
+```
+```{r}
+head(Count_human$samples, 3)
+```
+
+Pig
+```{r}
+colnames(Count_pig$counts) %<>%
+    str_replace(str_pattern[1], "") %>% str_replace(str_pattern[2], "")
+
+rownames(Count_pig$counts) %<>%
+    str_replace(",miRBase:.*", "") %>% 
+    str_replace("GeneID:", "")
+
+rownames(Count_pig$samples) %<>%
+    str_replace(str_pattern[1], "") %>% str_replace(str_pattern[2], "")
+```
+
+Cattle
+```{r}
+colnames(Count_cattle$counts) %<>%
+    str_replace(str_pattern[2], "") %>% str_replace(str_pattern[3], "_")
+
+rownames(Count_cattle$counts) %<>%
+    str_replace("BGD.*,", "") %>%
+    str_replace(",miRBase:.*", "") %>% 
+    str_replace("GeneID:", "")
+
+rownames(Count_cattle$samples) %<>%
+    str_replace(str_pattern[2], "") %>% str_replace(str_pattern[3], "_")
+```
+
+
+## Add group information
+***
+
+Cattle
+```{r}
+
+```
+
+
+## Output tidy raw data
+***
+```{r}
+
+```
+
+## Get gene annotation
+***
+Create annotation table with counts information
+```{r}
+human_annotated_counts <- as.data.frame(Count_human$counts)
+columns(org.Hs.eg.db)
+```
+```{r}
+pig_annotated_counts <- as.data.frame(Count_pig$counts)
+columns(org.Ss.eg.db)
+```
+```{r}
+cattle_annotated_counts <- as.data.frame(Count_cattle$counts)
+columns(org.Bt.eg.db)
+```
+
+Use NCBI gene identifiers as keys for retrieving gene names
+```{r}
+human_annotated_counts$gene_name <- mapIds(org.Hs.eg.db,
+                                           keys      = rownames(human_annotated_counts),
+                                           column    = "GENENAME",
+                                           keytype   = "ENTREZID",
+                                           multiVals = "first")
+
+pig_annotated_counts$gene_name <- mapIds(org.Ss.eg.db,
+                                         keys      = rownames(pig_annotated_counts),
+                                         column    = "GENENAME",
+                                         keytype   = "ENTREZID",
+                                         multiVals = "first")
+
+cattle_annotated_counts$gene_name <- mapIds(org.Bt.eg.db,
+                                            keys      = rownames(cattle_annotated_counts),
+                                            column    = "GENENAME",
+                                            keytype   = "ENTREZID",
+                                            multiVals = "first")
+```
+
+Use NCBI gene identifiers as keys for retrieving gene symbols
+```{r}
+human_annotated_counts$gene_symbol <- mapIds(org.Hs.eg.db,
+                                             keys      = rownames(human_annotated_counts),
+                                             column    = "SYMBOL",
+                                             keytype   = "ENTREZID",
+                                             multiVals = "first")
+
+pig_annotated_counts$gene_symbol <- mapIds(org.Ss.eg.db,
+                                           keys      = rownames(pig_annotated_counts),
+                                           column    = "SYMBOL",
+                                           keytype   = "ENTREZID",
+                                           multiVals = "first")
+
+cattle_annotated_counts$gene_symbol <- mapIds(org.Bt.eg.db,
+                                              keys      = rownames(cattle_annotated_counts),
+                                              column    = "SYMBOL",
+                                              keytype   = "ENTREZID",
+                                              multiVals = "first")
+```
+
+## Perform log2CPM transformation
+```{r}
+test <- human_annotated_counts
+
+test %<>% cpm(normalized.lib.sizes = TRUE, log = TRUE)
+
+cpm(x, normalized.lib.sizes = TRUE, log = TRUE)
+
+cpm(x, normalized.lib.sizes = TRUE, log = TRUE)
+```
+
+## Save .RData file
+***
+```{r}
+save.image(file = "GlobinRNA-seqAnalysis.RData")
+```
+
+## R session info
+***
+```{r}
+devtools::session_info()
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
