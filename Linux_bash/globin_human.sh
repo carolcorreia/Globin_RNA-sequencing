@@ -3,10 +3,11 @@
 #             (HBA and HBB) in human peripheral blood samples                #
 #                  --- Linux bioinformatics workflow ---                     #
 ##############################################################################
+
 # DOI badge: 
 # Author: Correia, C.N.
 # Version 1.0.0
-# Last updated on: 17/02/2016
+# Last updated on: 21/04/2017
 
 
 ############################################
@@ -225,13 +226,61 @@ done
 rm -r $HOME/scratch/globin/quality_check/post-filtering/human/tmp
 
 
+#########################################
+# Human: Rename ENA fastq trimmed files #
+#########################################
+
+### Moved trimmed reads to Rodeo.
+### Following steps were conducted in Ubuntu 14.04
+
+# Manually download the "RunInfo Table" file from NCBI, then transfer it
+# to Rodeo via WinSCP:
+# https://www.ncbi.nlm.nih.gov/Traces/study/?acc=SRP034732
+
+# Enter working directory in Rodeo:
+cd /home/workspace/ccorreia/globin/fastq_sequence/human
+
+# Create a file with two columns: the current folder name and
+# the desired new name.
+# From the SRA Run file select the following columns:
+# 'Run_s', 'treatment_s' internal_id_s, and 'lane_s' 
+# and append "Subj" and "L" to tidy the sample information.
+awk '{if (NR!=1) {print $5, $5"_"$20"_"$16"_""Subj"$10"_""L"$11}}' \
+SraRunTable.txt > sample_info.txt
+
+# Rename the folders with a a custom python script:
+python3 /home/workspace/ccorreia/scripts/rename_files.py sample_info.txt
+
+# Create a temporary folder and copy all data to it:
+mkdir /home/workspace/ccorreia/globin/fastq_sequence/human/tmp
+
+for file in `find /home/workspace/ccorreia/globin/fastq_sequence/human/SRR* \
+-name trimmed_*.fastq.gz`; \
+do cp $file \
+-t /home/workspace/ccorreia/globin/fastq_sequence/human/tmp; \
+done
+
+# Create a second file with two columns: the current FASTQ file name and
+# the desired new name.
+for file in `find /home/workspace/ccorreia/globin/fastq_sequence/human/SRR* \
+-name *_1.fastq.gz`; \
+do oldnameR1=`basename $file`; \
+oldnameR2=`echo $oldnameR1 | perl -p -e 's/_1\.fastq\.gz/_2\.fastq\.gz/'`; \
+pathname=`dirname $file`; \
+newname=`basename $pathname | perl -p -e 's/SRR\d+_(.+_.+_.+_L\d)/$1/'`; \
+echo "$oldnameR1  ${newname}_1.fastq.gz" >> fastq_names.txt; \
+echo "$oldnameR2  ${newname}_2.fastq.gz" >> fastq_names.txt; \
+done
+
+# Rename the FASTQ files:
+mv fastq_names.txt -t /home/workspace/ccorreia/globin/fastq_sequence/human/tmp
+cd /home/workspace/ccorreia/globin/fastq_sequence/human/tmp
+python3 /home/workspace/ccorreia/scripts/rename_files.py fastq_names.txt
+
 ############################################################
 # Human: Alignment of FASTQ files against the Homo sapiens #
 #                reference genome with STAR                #
 ############################################################
-
-### Moved trimmed reads to Rodeo.
-### Following steps were conducted in Ubuntu 14.04
 
 # Required software is STAR 2.5.2b, consult manual/tutorial for details:
 https://github.com/alexdobin/STAR/blob/master/doc/STARmanual.pdf
@@ -270,43 +319,80 @@ cd !$
 
 # Mapping reads from one FASTQ file to the indexed genome,
 # to check if it works well:
-STAR --runMode alignReads --runThreadN 20 --genomeLoad LoadAndRemove \
+STAR --runMode alignReads --runThreadN 30 --genomeLoad LoadAndRemove \
 --genomeDir /home/workspace/genomes/homosapiens/hg38_p9/STAR-2.5.2b_index_74bp \
 --readFilesIn \
-/home/workspace/ccorreia/globin/fastq_sequence/human/SRR1060753/trimmed_SRR1060753_1.fastq.gz \
-/home/workspace/ccorreia/globin/fastq_sequence/human/SRR1060753/trimmed_SRR1060753_2.fastq.gz \
+/home/workspace/ccorreia/globin/fastq_sequence/human/tmp/GD_FALSE_Subj1_L1_1.fastq.gz,\
+/home/workspace/ccorreia/globin/fastq_sequence/human/tmp/GD_FALSE_Subj1_L4_1.fastq.gz \
+/home/workspace/ccorreia/globin/fastq_sequence/human/tmp/GD_FALSE_Subj1_L1_2.fastq.gz,\
+/home/workspace/ccorreia/globin/fastq_sequence/human/tmp/GD_FALSE_Subj1_L4_2.fastq.gz \
 --readFilesCommand gunzip -c --outFilterMultimapNmax 10 \
---outFilterMismatchNmax 10 --outFileNamePrefix ./SRR1060753_ \
+--outFilterMismatchNmax 10 --outFileNamePrefix ./GD_FALSE_Subj1_ \
 --outSAMtype BAM Unsorted --outReadsUnmapped Fastx
 
-# Create a bash script to perform alignment of paired FASTQ files:
-for file in `find /home/workspace/ccorreia/globin/fastq_sequence/human \
--name *_1.fastq.gz`; \
-do file2=`echo $file | perl -p -e 's/\_1\.fastq\.gz/\_2\.fastq\.gz/'`; \
-sample=`basename $file | perl -p -e 's/\_1\.fastq\.gz//'`; \
+# Create a bash script to perform alignment of paired FASTQ files sequenced
+# over different lanes.
+# Lanes 1 and 4:
+for file in `find /home/workspace/ccorreia/globin/fastq_sequence/human/tmp \
+-name *L1_1.fastq.gz`; \
+do read1=`echo $file | perl -p -e 's/_L1_1\.fastq\.gz/\_L1_2\.fastq\.gz/'`; \
+file2=`echo $file | perl -p -e 's/\_L1_1\.fastq\.gz/\_L4_1\.fastq\.gz/'`; \
+read2=`echo $file2 | perl -p -e 's/\_L4_1\.fastq\.gz/\_L4_2\.fastq\.gz/'`; \
+sample=`basename $file | perl -p -e 's/(.+_.+_Subj\d+)_L\d_\d\.fastq\.gz/$1/'`; \
 echo "mkdir /home/workspace/ccorreia/globin/STAR-2.5.2b_alignment/human/$sample; \
 cd /home/workspace/ccorreia/globin/STAR-2.5.2b_alignment/human/$sample; \
-STAR --runMode alignReads --runThreadN 20 --genomeLoad LoadAndRemove \
+STAR --runMode alignReads --runThreadN 30 --genomeLoad LoadAndRemove \
 --genomeDir /home/workspace/genomes/homosapiens/hg38_p9/STAR-2.5.2b_index_74bp \
---readFilesIn $file $file2 --readFilesCommand gunzip -c \
+--readFilesIn $file,$file2 $read1,$read2 --readFilesCommand gunzip -c \
+--outFilterMultimapNmax 10 --outFilterMismatchNmax 10 \
+--outFileNamePrefix ./${sample}_ --outSAMtype BAM Unsorted \
+--outSAMattrIHstart 0 --outSAMattributes Standard --outReadsUnmapped Fastx" \
+>> align.sh; \
+done
+
+# Delete line for Subj 12 and append the correct code to the alignment script.
+# That was the only sample not sequenced over two lanes:
+sed '/Subj12/d' ./align.sh > alignment.sh
+rm align.sh
+
+echo "mkdir /home/workspace/ccorreia/globin/STAR-2.5.2b_alignment/human/GD_FALSE_Subj12; \
+cd /home/workspace/ccorreia/globin/STAR-2.5.2b_alignment/human/GD_FALSE_Subj12; \
+STAR --runMode alignReads --runThreadN 30 --genomeLoad LoadAndRemove \
+--genomeDir /home/workspace/genomes/homosapiens/hg38_p9/STAR-2.5.2b_index_74bp \
+--readFilesIn \
+/home/workspace/ccorreia/globin/fastq_sequence/human/tmp/GD_FALSE_Subj12_L1_1.fastq.gz \
+/home/workspace/ccorreia/globin/fastq_sequence/human/tmp/GD_FALSE_Subj12_L1_2.fastq.gz \
+--readFilesCommand gunzip -c --outFilterMultimapNmax 10 \
+--outFilterMismatchNmax 10 --outFileNamePrefix ./GD_FALSE_Subj12_ \
+--outSAMtype BAM Unsorted --outSAMattrIHstart 0 --outSAMattributes Standard \
+--outReadsUnmapped Fastx" \
+>> alignment.sh
+
+# Lanes 2 and 5:
+for file in `find /home/workspace/ccorreia/globin/fastq_sequence/human/tmp \
+-name *L2_1.fastq.gz`; \
+do read1=`echo $file | perl -p -e 's/_L2_1\.fastq\.gz/\_L2_2\.fastq\.gz/'`; \
+file2=`echo $file | perl -p -e 's/\_L2_1\.fastq\.gz/\_L5_1\.fastq\.gz/'`; \
+read2=`echo $file2 | perl -p -e 's/\_L5_1\.fastq\.gz/\_L5_2\.fastq\.gz/'`; \
+sample=`basename $file | perl -p -e 's/(.+_.+_Subj\d+)_L\d_\d\.fastq\.gz/$1/'`; \
+echo "mkdir /home/workspace/ccorreia/globin/STAR-2.5.2b_alignment/human/$sample; \
+cd /home/workspace/ccorreia/globin/STAR-2.5.2b_alignment/human/$sample; \
+STAR --runMode alignReads --runThreadN 30 --genomeLoad LoadAndRemove \
+--genomeDir /home/workspace/genomes/homosapiens/hg38_p9/STAR-2.5.2b_index_74bp \
+--readFilesIn $file,$file2 $read1,$read2 --readFilesCommand gunzip -c \
 --outFilterMultimapNmax 10 --outFilterMismatchNmax 10 \
 --outFileNamePrefix ./${sample}_ --outSAMtype BAM Unsorted \
 --outSAMattrIHstart 0 --outSAMattributes Standard --outReadsUnmapped Fastx" \
 >> alignment.sh; \
 done
 
-# Split and run script on Rodeo:
-split -d -l 16 alignment.sh alignment.sh.
-for script in `ls alignment.sh.*`
-do
-chmod 755 $script
-nohup ./$script > ${script}.nohup &
-done
+# Run script on Rodeo:
+chmod 755 alignment.sh
+nohup ./alignment.sh > alignment.sh.nohup &
+
 
 # Check nohup.out file to see how many jobs finished successfully:
-grep -c 'finished successfully' alignment.sh.00.nohup
-grep -c 'finished successfully' alignment.sh.01.nohup
-grep -c 'finished successfully' alignment.sh.02.nohup
+grep -c 'finished successfully' alignment.sh.nohup
 
 # Merge all STAR log.final.out files into a single file:
 for file in `find /home/workspace/ccorreia/globin/STAR-2.5.2b_alignment/human \
