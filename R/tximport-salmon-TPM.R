@@ -26,6 +26,112 @@ library(rjson)
 library(reshape2)
 library(biomaRt)
 
+# Summary of salmon stats
+h_salmon_stats <- read.table("salmon_summary_human.txt",
+                             header = TRUE)
+
+h_salmon_stats
+
+
+p_salmon_stats <- read.table("salmon_summary_pig.txt",
+                             header = TRUE)
+
+p_salmon_stats
+
+
+c_salmon_stats <- read.table("salmon_summary_cattle.txt",
+                             header = TRUE)
+
+c_salmon_stats
+
+# Clean names of samples in stats tables
+h_salmon_stats$File_name %<>%
+    str_replace("_salmon_quant.log", "") %>% 
+    str_replace("NGD_(FALSE|TRUE)_", "") %>% 
+    str_replace("GD_(FALSE|TRUE)_", "") %>% 
+    str_replace("Subj10", "Hsa_P10_D") %>% 
+    str_replace("Subj11", "Hsa_P11_D") %>% 
+    str_replace("Subj12", "Hsa_P12_D") %>% 
+    str_replace("Subj13", "Hsa_S01_U") %>% 
+    str_replace("Subj14", "Hsa_S02_U") %>% 
+    str_replace("Subj15", "Hsa_S03_U") %>% 
+    str_replace("Subj16", "Hsa_S04_U") %>% 
+    str_replace("Subj17", "Hsa_S05_U") %>% 
+    str_replace("Subj18", "Hsa_S06_U") %>% 
+    str_replace("Subj19", "Hsa_P19_U") %>% 
+    str_replace("Subj20", "Hsa_P20_U") %>% 
+    str_replace("Subj21", "Hsa_P21_U") %>% 
+    str_replace("Subj22", "Hsa_P22_U") %>% 
+    str_replace("Subj23", "Hsa_P23_U") %>% 
+    str_replace("Subj24", "Hsa_P24_U") %>% 
+    str_replace("Subj1", "Hsa_S01_D") %>% 
+    str_replace("Subj2", "Hsa_S02_D") %>% 
+    str_replace("Subj3", "Hsa_S03_D") %>% 
+    str_replace("Subj4", "Hsa_S04_D") %>% 
+    str_replace("Subj5", "Hsa_S05_D") %>% 
+    str_replace("Subj6", "Hsa_S06_D") %>% 
+    str_replace("Subj7", "Hsa_P07_D") %>% 
+    str_replace("Subj8", "Hsa_P08_D") %>% 
+    str_replace("Subj9", "Hsa_P09_D") 
+
+p_salmon_stats$File_name %<>%
+    str_replace("_salmon_quant.log", "") %>% 
+    str_replace("7197", "Ssc_01") %>% 
+    str_replace("7199", "Ssc_02") %>% 
+    str_replace("7210", "Ssc_03") %>% 
+    str_replace("7312", "Ssc_04") %>% 
+    str_replace("7349", "Ssc_05") %>%
+    str_replace("7413", "Ssc_06") %>%
+    str_replace("7437", "Ssc_07") %>%
+    str_replace("7439", "Ssc_08") %>%
+    str_replace("7467", "Ssc_09") %>%
+    str_replace("7468", "Ssc_10") %>%
+    str_replace("7472", "Ssc_11") %>%
+    str_replace("7474", "Ssc_12") %>%
+    str_replace("(CT|C)", "_U") %>% 
+    str_replace("(GD|T)", "_D")
+
+
+c_salmon_stats$File_name %<>%
+    str_replace("_salmon_quant.log", "") %>% 
+    str_replace("A", "") %>% 
+    str_replace("_W-1_F", "") %>%
+    str_replace("6511", "Bta_01_U") %>%
+    str_replace("6514", "Bta_02_U") %>%
+    str_replace("6520", "Bta_03_U") %>%
+    str_replace("6522", "Bta_04_U") %>%
+    str_replace("6526", "Bta_05_U") %>%
+    str_replace("6635", "Bta_06_U") %>%
+    str_replace("6636", "Bta_07_U") %>%
+    str_replace("6637", "Bta_08_U") %>%
+    str_replace("6644", "Bta_09_U") %>%
+    str_replace("6698", "Bta_10_U")
+
+h_salmon_stats$Library_type %<>% 
+    str_replace("IU", "Inward Unstranded")
+p_salmon_stats$Library_type %<>% 
+    str_replace("IU", "Inward Unstranded")
+c_salmon_stats$Library_type %<>% 
+    str_replace("ISF", "Inward Stranded Forward")
+
+# Export renamed salmon stats
+write.table(h_salmon_stats,
+            file = "h_salmon_stats.txt",
+            sep = "\t",
+            col.names = TRUE,
+            quote = FALSE)
+
+write.table(p_salmon_stats,
+            file = "p_salmon_stats.txt",
+            sep = "\t",
+            col.names = TRUE,
+            quote = FALSE)
+
+write.table(c_salmon_stats,
+            file = "c_salmon_stats.txt",
+            sep = "\t",
+            col.names = TRUE,
+            quote = FALSE)
 
 # Get file names
 path_human <- "/Users/ccorreia/Dropbox/CSF/Animal_Genomics/Globin/salmon/human_TPM"
@@ -178,7 +284,7 @@ head(cattle_txi$abundance)
 
 # Get datasets names from ensembl biomart
 listMarts(mart = NULL, host="www.ensembl.org", path="/biomart/martservice",
-          port=80)
+          port = 80)
 mart_datasets <- useMart("ENSEMBL_MART_ENSEMBL")
 listDatasets(mart_datasets)
 
@@ -264,7 +370,7 @@ c_TPM_nozeros <- cattle_TPM[rowSums(cattle_TPM) > 0, ]
 dim(c_TPM_nozeros)
 dim(cattle_TPM)
 
-# Remove lowly expressed genes (< 1 TPM in one treatment group)
+# Remove lowly expressed genes (< 1 TPM)
 h_TPM_filt <- h_TPM_nozeros[rowSums(h_TPM_nozeros >= 1) >= 12, ]
 dim(h_TPM_filt)
 dim(h_TPM_nozeros)
@@ -563,14 +669,182 @@ c_TPM_filt$treatment %<>%
     str_replace("Bta_\\d\\d_", "")
 unique(c_TPM_filt$treatment)
 
-# Subset globin genes by Ensembl ID
-h_TPM_nozeros %>% 
+# Total number of genes by treatment after tximport summarisation and zeros removed
+h_TPM_nozeros %>%
+    dplyr::filter(treatment == "U") %>% 
+    plyr::count("Ensembl_gene_ID") %>% 
+    dim()
+
+h_TPM_nozeros %>%
+    dplyr::filter(treatment == "D") %>% 
+    dplyr::count(Ensembl_gene_ID) %>% 
+    dim()
+
+unique(h_TPM_nozeros$Ensembl_gene_ID) %>% 
+    length()
+
+p_TPM_nozeros %>%
+    dplyr::filter(treatment == "U") %>% 
+    dplyr::count(Ensembl_gene_ID) %>% 
+    dim()
+
+p_TPM_nozeros %>%
+    dplyr::filter(treatment == "D") %>% 
+    dplyr::count(Ensembl_gene_ID) %>% 
+    dim()
+
+unique(p_TPM_nozeros$Ensembl_gene_ID) %>% 
+    length()
+
+unique(c_TPM_nozeros$Ensembl_gene_ID) %>% 
+    length()
+
+# Total number of genes by treatment after tximport summarisation and TPM >= 1
+
+h_TPM_filt %>%
+    dplyr::filter(treatment == "U") %>% 
+    dplyr::count(Ensembl_gene_ID) %>% 
+    dim()
+
+h_TPM_filt %>%
+    dplyr::filter(treatment == "D") %>% 
+    dplyr::count(Ensembl_gene_ID) %>% 
+    dim()
+
+unique(h_TPM_filt$Ensembl_gene_ID) %>% 
+    length()
+
+p_TPM_filt %>%
+    dplyr::filter(treatment == "U") %>% 
+    dplyr::count(Ensembl_gene_ID) %>% 
+    dim()
+
+p_TPM_filt %>%
+    dplyr::filter(treatment == "D") %>% 
+    dplyr::count(Ensembl_gene_ID) %>% 
+    dim()
+
+unique(p_TPM_filt$Ensembl_gene_ID) %>% 
+    length()
+
+unique(c_TPM_filt$Ensembl_gene_ID) %>% 
+    length()
+
+
+# Bind gene-level TPM filt dfs
+A_TPM_filt <- dplyr::bind_rows(h_TPM_filt, p_TPM_filt)
+A_TPM_filt <- dplyr::bind_rows(A_TPM_filt, c_TPM_filt)
+dim(A_TPM_filt)
+dim(h_TPM_filt)
+dim(p_TPM_filt)
+dim(c_TPM_filt)
+
+# Add species column A_TPM_filt
+A_TPM_filt$species <- A_TPM_filt$Ensembl_gene_ID
+A_TPM_filt$species %<>%
+    stringr::str_replace("ENSG0.+", "Human") %>% 
+    stringr::str_replace("ENSSSCG0.+", "Porcine") %>% 
+    stringr::str_replace("ENSBTAG0.+", "Bovine") 
+
+# Treatment factors allG_TPM_filt
+A_TPM_filt$treatment %<>% factor(levels = c("U", "D"))
+
+A_TPM_filt$treatment %<>%
+    stringr::str_replace("U", "Undepleted") %>% 
+    stringr::str_replace("D", "Globin depleted") %>%
+    factor(levels = c("Undepleted", "Globin depleted"))
+
+# Density plot of gene-level TPM after filtering (FIGURE 1)
+A_TPM_filt_plot <- ggplot(A_TPM_filt) +
+                        geom_density(aes(log(TPM + 1),
+                                         group = treatment,
+                                         fill = treatment),
+                                     alpha = 0.5) +
+                        scale_fill_manual("Treatment",
+                                          values = c("#af8dc3", "#7fbf7b")) +
+                        facet_grid(. ~ species) +
+                        theme_bw() +
+                        ylab("Density of gene-level TPM estimates") +
+                        xlab(expression(paste(log[2], "(TPM + 1)")))
+
+A_TPM_filt_plot
+
+ggsave("A_TPM_filt_plot.png",
+       plot      = A_TPM_filt_plot,
+       limitsize = FALSE,
+       dpi       = 300,
+       path      = img_dir)
+
+# Proportion of globin within all genes after filtering
+h_TPM_filt %>% # Sum total TPM per gene, within each treat
+    dplyr::group_by(Ensembl_gene_ID, treatment) %>% 
+    dplyr::summarise(sum_TPM = sum(TPM)) -> summary_h_TPM_filt
+
+summary_h_TPM_filt %>% # Sum all TPMs by treat
+    dplyr::filter(treatment == "U") -> U_summary_h_TPM_filt
+colSums(as.data.frame(U_summary_h_TPM_filt$sum_TPM))
+
+U_summary_h_TPM_filt %>% # Sum globin TPMs by treat
     dplyr::filter(Ensembl_gene_ID %in% c("ENSG00000206172",
                                          "ENSG00000188536",
-                                         "ENSG00000244734")) -> Hg_TPM_noz
-unique(Hg_TPM_noz$Ensembl_gene_ID)
-head(Hg_TPM_noz)
+                                         "ENSG00000244734"))
 
+summary_h_TPM_filt %>%
+    dplyr::filter(treatment == "D") -> D_summary_h_TPM_filt
+colSums(as.data.frame(D_summary_h_TPM_filt$sum_TPM))
+
+D_summary_h_TPM_filt %>% 
+    dplyr::filter(Ensembl_gene_ID %in% c("ENSG00000206172",
+                                         "ENSG00000188536",
+                                         "ENSG00000244734"))
+
+
+p_TPM_filt %>% 
+    dplyr::group_by(Ensembl_gene_ID, treatment) %>% 
+    dplyr::summarise(sum_TPM = sum(TPM)) -> summary_p_TPM_filt
+
+summary_p_TPM_filt %>%
+    dplyr::filter(treatment == "U") -> U_summary_p_TPM_filt
+colSums(as.data.frame(U_summary_p_TPM_filt$sum_TPM))
+
+U_summary_p_TPM_filt %>% 
+    dplyr::filter(Ensembl_gene_ID %in% c("ENSSSCG00000007978",
+                                         "ENSSSCG00000014725"))
+
+summary_p_TPM_filt %>%
+    dplyr::filter(treatment == "D") -> D_summary_p_TPM_filt
+colSums(as.data.frame(D_summary_p_TPM_filt$sum_TPM))
+
+D_summary_p_TPM_filt %>% 
+    dplyr::filter(Ensembl_gene_ID %in% c("ENSSSCG00000007978",
+                                         "ENSSSCG00000014725"))
+
+
+
+c_TPM_filt %>% 
+    dplyr::group_by(Ensembl_gene_ID, treatment) %>% 
+    summarise(sum_TPM = sum(TPM)) -> summary_c_TPM_filt
+
+summary_c_TPM_filt %>%
+    dplyr::filter(treatment == "U") -> U_summary_c_TPM_filt
+colSums(as.data.frame(U_summary_c_TPM_filt$sum_TPM))
+
+U_summary_c_TPM_filt %>% 
+    dplyr::filter(Ensembl_gene_ID %in% c("ENSBTAG00000026417",
+                                         "ENSBTAG00000026418",
+                                         "ENSBTAG00000038748"))
+
+# Dot plot of globin gene-level filtered TPM (FIGURE 2)
+
+U_summary_c_TPM_filt
+ggplot(U_summary_c_TPM_filt, aes(x = size, fill = type)) +
+    geom_dotplot(method="histodot", stackgroups = TRUE)
+
+
+
+
+
+# Subset globin genes by Ensembl ID
 h_TPM_filt %>% 
     dplyr::filter(Ensembl_gene_ID %in% c("ENSG00000206172",
                                          "ENSG00000188536",
@@ -579,27 +853,12 @@ unique(Hg_TPM_filt$Ensembl_gene_ID)
 head(Hg_TPM_filt)
 
 
-
-p_TPM_nozeros %>% 
-    dplyr::filter(Ensembl_gene_ID %in% c("ENSSSCG00000007978",
-                                         "ENSSSCG00000014725")) -> Pg_TPM_noz
-unique(Pg_TPM_noz$Ensembl_gene_ID)
-head(Pg_TPM_noz)
-
 p_TPM_filt %>% 
     dplyr::filter(Ensembl_gene_ID %in% c("ENSSSCG00000007978",
                                          "ENSSSCG00000014725")) -> Pg_TPM_filt
 unique(Pg_TPM_filt$Ensembl_gene_ID)
 head(Pg_TPM_filt)
 
-
-
-c_TPM_nozeros %>% 
-    dplyr::filter(Ensembl_gene_ID %in% c("ENSBTAG00000026417",
-                                         "ENSBTAG00000026418",
-                                         "ENSBTAG00000038748")) -> Cg_TPM_noz
-unique(Cg_TPM_noz$Ensembl_gene_ID)
-head(Cg_TPM_noz)
 
 c_TPM_filt %>% 
     dplyr::filter(Ensembl_gene_ID %in% c("ENSBTAG00000026417",
@@ -645,13 +904,31 @@ allG_TPM_filt$treatment %<>%
     str_replace("D", "Globin depleted") %>%
     factor(levels = c("Undepleted", "Globin depleted"))
 
-allG_mean_filt$treatment %<>%
-    str_replace("U", "Undepleted") %>% 
-    str_replace("D", "Globin depleted") %>%
-    factor(levels = c("Undepleted", "Globin depleted"))
+# Get means for each globin from filt dfs
+h_TPM_filt %>% 
+    dplyr::group_by(Ensembl_gene_ID, treatment) %>% 
+    summarise(mean(TPM)) %>%
+    dplyr::filter(Ensembl_gene_ID %in% c("ENSG00000206172",
+                                         "ENSG00000188536",
+                                         "ENSG00000244734")) %>% 
+    dplyr::rename(meanTPM = `mean(TPM)`) -> Hg_mean_filt
 
-# Add mean TPM value fort each globin within treatment
-allG_mean_filt
+p_TPM_filt %>% 
+    dplyr::group_by(Ensembl_gene_ID, treatment) %>% 
+    summarise(mean(TPM)) %>%
+    dplyr::filter(Ensembl_gene_ID %in% c("ENSSSCG00000007978",
+                                         "ENSSSCG00000014725")) %>% 
+    dplyr::rename(meanTPM = `mean(TPM)`) -> Pg_mean_filt
+
+c_TPM_filt %>% 
+    dplyr::group_by(Ensembl_gene_ID, treatment) %>% 
+    summarise(mean(TPM)) %>%
+    dplyr::filter(Ensembl_gene_ID %in% c("ENSBTAG00000026417",
+                                         "ENSBTAG00000026418",
+                                         "ENSBTAG00000038748")) %>% 
+    dplyr::rename(meanTPM = `mean(TPM)`) -> Cg_mean_filt
+
+# Add mean TPM value for each globin within treatment
 head(allG_TPM_filt)
 
 allG_TPM_filt$meanTPM <- c(0)
@@ -696,7 +973,9 @@ allG_TPM_filt %>%
     dplyr::group_by(Ensembl_gene_ID, treatment, meanTPM) %>% 
     dplyr::summarise()
 
-# Plot allG_TPM_filt
+
+
+# Plot allG_TPM_filt (FIGURE 3)
 allG_TPM_filt_plot <- ggplot(allG_TPM_filt) +
                         geom_jitter(aes(gene_symbol,
                                         log2(TPM + 1),
@@ -732,109 +1011,8 @@ ggsave("allG_TPM_filt_plot.png",
 #       colour = guide_legend("Treatment")) +
 
 
-# Get means for each globin from nozeros dfs
-h_TPM_nozeros %>% 
-    dplyr::group_by(Ensembl_gene_ID, treatment) %>% 
-    summarise(mean(TPM)) %>%
-    dplyr::filter(Ensembl_gene_ID %in% c("ENSG00000206172",
-                                         "ENSG00000188536",
-                                         "ENSG00000244734")) %>% 
-    dplyr::rename(meanTPM = `mean(TPM)`) -> Hg_mean_noz
-
-p_TPM_nozeros %>% 
-    dplyr::group_by(Ensembl_gene_ID, treatment) %>% 
-    summarise(mean(TPM)) %>%
-    dplyr::filter(Ensembl_gene_ID %in% c("ENSSSCG00000007978",
-                                         "ENSSSCG00000014725")) %>% 
-    dplyr::rename(meanTPM = `mean(TPM)`) -> Pg_mean_noz
-
-c_TPM_nozeros %>% 
-    dplyr::group_by(Ensembl_gene_ID, treatment) %>% 
-    summarise(mean(TPM)) %>%
-    dplyr::filter(Ensembl_gene_ID %in% c("ENSBTAG00000026417",
-                                         "ENSBTAG00000026418",
-                                         "ENSBTAG00000038748")) %>% 
-    dplyr::rename(meanTPM = `mean(TPM)`) -> Cg_mean_noz
-
-
-# Get means for each globin from filt dfs
-h_TPM_filt %>% 
-    dplyr::group_by(Ensembl_gene_ID, treatment) %>% 
-    summarise(mean(TPM)) %>%
-    dplyr::filter(Ensembl_gene_ID %in% c("ENSG00000206172",
-                                         "ENSG00000188536",
-                                         "ENSG00000244734")) %>% 
-    dplyr::rename(meanTPM = `mean(TPM)`) -> Hg_mean_filt
-
-p_TPM_filt %>% 
-    dplyr::group_by(Ensembl_gene_ID, treatment) %>% 
-    summarise(mean(TPM)) %>%
-    dplyr::filter(Ensembl_gene_ID %in% c("ENSSSCG00000007978",
-                                         "ENSSSCG00000014725")) %>% 
-    dplyr::rename(meanTPM = `mean(TPM)`) -> Pg_mean_filt
-
-c_TPM_filt %>% 
-    dplyr::group_by(Ensembl_gene_ID, treatment) %>% 
-    summarise(mean(TPM)) %>%
-    dplyr::filter(Ensembl_gene_ID %in% c("ENSBTAG00000026417",
-                                         "ENSBTAG00000026418",
-                                         "ENSBTAG00000038748")) %>% 
-    dplyr::rename(meanTPM = `mean(TPM)`) -> Cg_mean_filt
-
-# Bind mean filt dfs
-allG_mean_filt <- dplyr::bind_rows(Hg_mean_filt, Pg_mean_filt)
-allG_mean_filt <- dplyr::bind_rows(allG_mean_filt, Cg_mean_filt)
-
-# Add species column
-allG_mean_filt$species <- allG_mean_filt$Ensembl_gene_ID
-allG_mean_filt$species %<>%
-    str_replace("ENSG0.+", "Human") %>% 
-    str_replace("ENSSSCG0.+", "Porcine") %>% 
-    str_replace("ENSBTAG0.+", "Bovine") 
-
-# Add gene symbol
-allG_mean_filt$gene_symbol <- allG_mean_filt$Ensembl_gene_ID
-allG_mean_filt$gene_symbol %<>%
-    str_replace("ENSG00000206172", "HBA1") %>% 
-    str_replace("ENSG00000188536", "HBA2") %>% 
-    str_replace("ENSG00000244734", "HBB") %>% 
-    str_replace("ENSSSCG00000007978", "HBA1") %>% 
-    str_replace("ENSSSCG00000014725", "HBB") %>%
-    str_replace("ENSBTAG00000026417", "HBA1") %>% 
-    str_replace("ENSBTAG00000026418", "HBA2") %>% 
-    str_replace("ENSBTAG00000038748", "HBB")
-    
-
-# Treatment factors
-allG_mean_filt$treatment %<>% factor(levels = c("U", "D"))
-
-# Plots
-ggplot(allG_mean_filt, aes(treatment, log2(meanTPM))) +
-    geom_point(aes(colour = treatment),
-               size = 4,
-               show.legend = FALSE) +
-    scale_colour_manual(values = c("#636363", "#636363")) +
-    geom_label_repel(aes(label = gene_symbol,
-                         fill = gene_symbol),
-                     show.legend = FALSE,
-                     point.padding = unit(0.8, "lines")) +
-    facet_grid(. ~ species,
-               scales = "free",
-               space = "free_x") +
-    theme_bw() +
-    xlab("Treatment") +
-    ylab(expression(paste(log[2], " mean TPM")))
-
-allGlobin_meanTPM
-
-ggsave("allGlobin_meanTPM.png",
-       plot      = allGlobin_meanTPM,
-       limitsize = FALSE,
-       dpi       = 300,
-       path      = img_dir)
-
-
-
+# SD
+sd(Table$Size)
 
 save.image(file = "tximport-salmon-TPM.RData")
 
