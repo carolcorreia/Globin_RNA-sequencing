@@ -13,10 +13,12 @@ biocLite("tximport")
 biocLite("GenomicFeatures", type = "source")
 
 install.packages("rjson")
+install.packages("ggpubr")
 
 library(plyr)
 library(tidyverse)
 library(ggrepel)
+library(ggpubr)
 library(magrittr)
 library(stringr)
 library(rtracklayer)
@@ -746,6 +748,9 @@ A_TPM_filt$species %<>%
     stringr::str_replace("ENSSSCG0.+", "Porcine") %>% 
     stringr::str_replace("ENSBTAG0.+", "Bovine") 
 
+# Species factors allG_TPM_filt
+A_TPM_filt$species%<>% factor(levels = c("Human", "Porcine", "Bovine"))
+
 # Treatment factors allG_TPM_filt
 A_TPM_filt$treatment %<>% factor(levels = c("U", "D"))
 
@@ -757,91 +762,116 @@ A_TPM_filt$treatment %<>%
 # Density plot of gene-level TPM after filtering (FIGURE 1)
 A_TPM_filt_plot <- ggplot(A_TPM_filt) +
                         geom_density(aes(log(TPM + 1),
-                                         group = treatment,
-                                         fill = treatment),
-                                     alpha = 0.5) +
-                        scale_fill_manual("Treatment",
-                                          values = c("#af8dc3", "#7fbf7b")) +
+                                         group = labels,
+                                         colour = treatment),
+                                     alpha = 0.5, show.legend = FALSE) +
+                        stat_density(aes(x = log(TPM + 1),
+                                         colour = treatment),
+                                     geom = "line", position = "identity") +
+                        scale_colour_manual("Treatment",
+                                            values = c("#af8dc3", "#7fbf7b")) +
+                        guides(colour = 
+                                   guide_legend(override.aes = list(size = 3))) +
+
                         facet_grid(. ~ species) +
                         theme_bw() +
-                        ylab("Density of gene-level TPM estimates") +
+                        ylab("Density of gene-level TPM \nestimates per sample") +
                         xlab(expression(paste(log[2], "(TPM + 1)")))
 
 A_TPM_filt_plot
 
 ggsave("A_TPM_filt_plot.png",
        plot      = A_TPM_filt_plot,
+       device    = "png",
        limitsize = FALSE,
-       dpi       = 300,
+       dpi       = 600,
        path      = img_dir)
 
-# Proportion of globin within all genes after filtering
-h_TPM_filt %>% # Sum total TPM per gene, within each treat
-    dplyr::group_by(Ensembl_gene_ID, treatment) %>% 
-    dplyr::summarise(sum_TPM = sum(TPM)) -> summary_h_TPM_filt
+# Proportion of globin TPM to total TPM per sample (SUPPLEMENTARY TABLE 1)
+A_TPM_filt %>% # Sum total TPM per sample, within each treatment
+    dplyr::group_by(labels) %>% 
+    dplyr::summarise(sum_allTPM = sum(TPM)) -> sample_sumTPM_filt
 
-summary_h_TPM_filt %>% # Sum all TPMs by treat
-    dplyr::filter(treatment == "U") -> U_summary_h_TPM_filt
-colSums(as.data.frame(U_summary_h_TPM_filt$sum_TPM))
-
-U_summary_h_TPM_filt %>% # Sum globin TPMs by treat
+A_TPM_filt %>% # Sum of globin TPM per sample, within each treatment
+    dplyr::group_by(labels) %>% 
     dplyr::filter(Ensembl_gene_ID %in% c("ENSG00000206172",
                                          "ENSG00000188536",
-                                         "ENSG00000244734"))
-
-summary_h_TPM_filt %>%
-    dplyr::filter(treatment == "D") -> D_summary_h_TPM_filt
-colSums(as.data.frame(D_summary_h_TPM_filt$sum_TPM))
-
-D_summary_h_TPM_filt %>% 
-    dplyr::filter(Ensembl_gene_ID %in% c("ENSG00000206172",
-                                         "ENSG00000188536",
-                                         "ENSG00000244734"))
-
-
-p_TPM_filt %>% 
-    dplyr::group_by(Ensembl_gene_ID, treatment) %>% 
-    dplyr::summarise(sum_TPM = sum(TPM)) -> summary_p_TPM_filt
-
-summary_p_TPM_filt %>%
-    dplyr::filter(treatment == "U") -> U_summary_p_TPM_filt
-colSums(as.data.frame(U_summary_p_TPM_filt$sum_TPM))
-
-U_summary_p_TPM_filt %>% 
-    dplyr::filter(Ensembl_gene_ID %in% c("ENSSSCG00000007978",
-                                         "ENSSSCG00000014725"))
-
-summary_p_TPM_filt %>%
-    dplyr::filter(treatment == "D") -> D_summary_p_TPM_filt
-colSums(as.data.frame(D_summary_p_TPM_filt$sum_TPM))
-
-D_summary_p_TPM_filt %>% 
-    dplyr::filter(Ensembl_gene_ID %in% c("ENSSSCG00000007978",
-                                         "ENSSSCG00000014725"))
-
-
-
-c_TPM_filt %>% 
-    dplyr::group_by(Ensembl_gene_ID, treatment) %>% 
-    summarise(sum_TPM = sum(TPM)) -> summary_c_TPM_filt
-
-summary_c_TPM_filt %>%
-    dplyr::filter(treatment == "U") -> U_summary_c_TPM_filt
-colSums(as.data.frame(U_summary_c_TPM_filt$sum_TPM))
-
-U_summary_c_TPM_filt %>% 
-    dplyr::filter(Ensembl_gene_ID %in% c("ENSBTAG00000026417",
+                                         "ENSG00000244734",
+                                         "ENSSSCG00000007978",
+                                         "ENSSSCG00000014725",
+                                         "ENSBTAG00000026417",
                                          "ENSBTAG00000026418",
-                                         "ENSBTAG00000038748"))
+                                         "ENSBTAG00000038748")) %>% 
+    dplyr::summarise(sum_globinTPM = sum(TPM)) -> sample_sumGlobinTPM_filt
+    
+identical(sample_sumTPM_filt$labels, sample_sumGlobinTPM_filt$labels)
 
-# Dot plot of globin gene-level filtered TPM (FIGURE 2)
+sample_sumTPM_filt$sum_globinTPM <- sample_sumGlobinTPM_filt$sum_globinTPM
 
-U_summary_c_TPM_filt
-ggplot(U_summary_c_TPM_filt, aes(x = size, fill = type)) +
-    geom_dotplot(method="histodot", stackgroups = TRUE)
+sample_sumTPM_filt$globin_percent <- sample_sumTPM_filt$sum_globinTPM / 
+                                        sample_sumTPM_filt$sum_allTPM * 100
+
+sample_sumTPM_filt
+
+write.csv(sample_sumTPM_filt,
+          file = "sample_sumTPM_filt.csv")
+
+# Average proportions of all globins and SD (FIGURE 2)
+# filter by _U or _D then use mean(Table$Size) and sd(Table$Size)
+
+sample_sumTPM_filt %>% 
+    dplyr::filter(str_detect(labels, "Hsa")) %>% 
+    dplyr::filter(str_detect(labels, "_U")) %>% 
+    dplyr::summarise(meanAll_TPM = mean(sum_allTPM),
+                     sd_All_TPM  = sd(sum_allTPM),
+                     meanGlobin_TPM = mean(sum_globinTPM),
+                     sd_Globin_TPM  = sd(sum_globinTPM),
+                     meanG_perc = mean(globin_percent),
+                     sd_G_perc  = sd(globin_percent)) -> summary_H_U
+
+sample_sumTPM_filt %>% 
+    dplyr::filter(str_detect(labels, "Hsa")) %>% 
+    dplyr::filter(str_detect(labels, "_D")) %>% 
+    dplyr::summarise(meanAll_TPM = mean(sum_allTPM),
+                     sd_All_TPM  = sd(sum_allTPM),
+                     meanGlobin_TPM = mean(sum_globinTPM),
+                     sd_Globin_TPM  = sd(sum_globinTPM),
+                     meanG_perc = mean(globin_percent),
+                     sd_G_perc  = sd(globin_percent)) -> summary_H_D
 
 
 
+sample_sumTPM_filt %>% 
+    dplyr::filter(str_detect(labels, "Ssc")) %>% 
+    dplyr::filter(str_detect(labels, "_U")) %>% 
+    dplyr::summarise(meanAll_TPM = mean(sum_allTPM),
+                     sd_All_TPM  = sd(sum_allTPM),
+                     meanGlobin_TPM = mean(sum_globinTPM),
+                     sd_Globin_TPM  = sd(sum_globinTPM),
+                     meanG_perc = mean(globin_percent),
+                     sd_G_perc  = sd(globin_percent)) -> summary_P_U
+
+sample_sumTPM_filt %>% 
+    dplyr::filter(str_detect(labels, "Ssc")) %>% 
+    dplyr::filter(str_detect(labels, "_D")) %>% 
+    dplyr::summarise(meanAll_TPM = mean(sum_allTPM),
+                     sd_All_TPM  = sd(sum_allTPM),
+                     meanGlobin_TPM = mean(sum_globinTPM),
+                     sd_Globin_TPM  = sd(sum_globinTPM),
+                     meanG_perc = mean(globin_percent),
+                     sd_G_perc  = sd(globin_percent)) -> summary_P_D
+
+
+
+
+sample_sumTPM_filt %>% 
+    dplyr::filter(str_detect(labels, "Bta")) %>% 
+    dplyr::summarise(meanAll_TPM = mean(sum_allTPM),
+                     sd_All_TPM  = sd(sum_allTPM),
+                     meanGlobin_TPM = mean(sum_globinTPM),
+                     sd_Globin_TPM  = sd(sum_globinTPM),
+                     meanG_perc = mean(globin_percent),
+                     sd_G_perc  = sd(globin_percent)) -> summary_C_U
 
 
 # Subset globin genes by Ensembl ID
@@ -881,6 +911,9 @@ allG_TPM_filt$species %<>%
     str_replace("ENSG0.+", "Human") %>% 
     str_replace("ENSSSCG0.+", "Porcine") %>% 
     str_replace("ENSBTAG0.+", "Bovine") 
+
+# Species factors allG_TPM_filt
+allG_TPM_filt$species%<>% factor(levels = c("Human", "Porcine", "Bovine"))
 
 # Add gene symbol allG_TPM_filt
 allG_TPM_filt$gene_symbol <- allG_TPM_filt$Ensembl_gene_ID
@@ -1011,8 +1044,7 @@ ggsave("allG_TPM_filt_plot.png",
 #       colour = guide_legend("Treatment")) +
 
 
-# SD
-sd(Table$Size)
+
 
 save.image(file = "tximport-salmon-TPM.RData")
 
