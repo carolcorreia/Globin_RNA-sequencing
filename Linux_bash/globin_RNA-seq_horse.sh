@@ -198,49 +198,29 @@ more fastqc.sh.nohup | grep "Failed to process file" >> failed_fastqc.txt
 ### and checked the HTML reports. It worked fine.
 
 # Check all output from FastQC:
-mkdir /home/workspace/ccorreia/globin/quality_check/pre-filtering/horse/tmp
+mkdir /home/workspace/ccorreia/globin/quality_check/post-filtering/horse/tmp
 
 for file in `ls *_fastqc.zip`; do unzip \
-$file -d /home/workspace/ccorreia/globin/quality_check/pre-filtering/horse/tmp; \
+$file -d /home/workspace/ccorreia/globin/quality_check/post-filtering/horse/tmp; \
 done
 
 for file in \
-`find /home/workspace/ccorreia/globin/quality_check/pre-filtering/horse/tmp \
--name summary.txt`; do more $file >> reports_pre-filtering.txt; \
+`find /home/workspace/ccorreia/globin/quality_check/post-filtering/horse/tmp \
+-name summary.txt`; do more $file >> reports_post-filtering.txt; \
 done
 
-grep 'Adapter Content' reports_pre-filtering.txt >> adapter_content.txt
+grep 'Adapter Content' reports_post-filtering.txt >> adapter_content.txt
 wc -l adapter_content.txt
 
 grep FAIL adapter_content.txt | wc -l
 
 for file in \
-`find /home/workspace/ccorreia/globin/quality_check/pre-filtering/horse/tmp \
--name fastqc_data.txt`; do head -n 10 $file >> basic_stats_pre-filtering.txt; \
+`find /home/workspace/ccorreia/globin/quality_check/post-filtering/horse/tmp \
+-name fastqc_data.txt`; do head -n 10 $file >> basic_stats_post-filtering.txt; \
 done
 
 # Remove temporary folder and its files:
-rm -r /home/workspace/ccorreia/globin/quality_check/pre-filtering/horse/tmp
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+rm -r /home/workspace/ccorreia/globin/quality_check/post-filtering/horse/tmp
 
 
 ############################################################
@@ -254,4 +234,112 @@ cd !$
 # Download and unzip the transcriptome:
 nohup wget ftp://ftp.ensembl.org/pub/release-88/fasta/equus_caballus/cdna/Equus_caballus.EquCab2.cdna.all.fa.gz &
 gunzip Equus_caballus.EquCab2.cdna.all.fa.gz
+
+##############################################
+# Build the transcriptome index using Salmon #
+##############################################
+
+# Required software is Salmon 0.8.2, consult manual/tutorial for details:
+http://salmon.readthedocs.io/en/latest/
+
+# Enter working directory:
+cd /home/workspace/ccorreia/globin/transcriptomes/horse
+
+# Build an index for quasi-mapping:
+nohup salmon index -t \
+/home/workspace/ccorreia/globin/transcriptomes/horse/source_file/Equus_caballus.EquCab2.cdna.all.fa \
+-i horse_index --type quasi -k 31 -p 20 &
+
+
+#####################################
+# Quantify transcripts using Salmon #
+#####################################
+
+# Create and enter working directory:
+mkdir -p /home/workspace/ccorreia/globin/salmon_quant/horse
+cd !$
+
+# Quantify transcripts from one FASTQ file to check if it works well:
+salmon quant -i /home/workspace/ccorreia/globin/transcriptomes/horse/horse_index \
+-l A -r /home/workspace/ccorreia/globin/fastq_sequence/horse/SRR3671009/trimmed_SRR3671009.fastq.gz \
+-p 15 -o ./SRR3671009
+
+# Create a bash script to perform quantification of FASTQ files sequenced:
+for file in `find /home/workspace/ccorreia/globin/fastq_sequence/horse \
+-name *.fastq.gz`; \
+do sample=`basename $file | perl -p -e 's/.fastq.gz//'`; \
+echo "salmon quant -i /home/workspace/ccorreia/globin/transcriptomes/horse/horse_index \
+-l A -r $file -p 15 -o ./$sample" \
+>> quant.sh; \
+done
+
+# Split and run all scripts on Rodeo:
+split -d -l 20 quant.sh quant.sh.
+for script in `ls quant.sh.*`
+do
+chmod 755 $script
+nohup ./$script > ${script}.nohup &
+done
+
+# Append sample name to all quant.sf files to temporary folder:
+for file in `find /home/workspace/ccorreia/globin/salmon_quant/horse \
+-name quant.sf`; \
+do sample=`dirname $file | perl -p -e 's/.+_(SRR\d+)/$1/'`; \
+oldname=`basename $file`; \
+path=`dirname $file`; \
+mv $file $path/${sample}_$oldname; \
+done
+
+# Move all *quant.sf files to a temporary folder:
+mkdir /home/workspace/ccorreia/globin/salmon_quant/horse/horse_TPM
+for file in `find /home/workspace/ccorreia/globin/salmon_quant/horse \
+-name SRR*quant.sf`; \
+do cp $file -t /home/workspace/ccorreia/globin/salmon_quant/horse/horse_TPM; \
+done
+
+# Transfer all files from Rodeo to laptop:
+scp -r ccorreia@remoteserver:/home/workspace/ccorreia/globin/salmon_quant/horse/horse_TPM .
+
+# Remove tmp folder from Rodeo:
+rm -r horse_TPM
+
+# Append sample name to all log files:
+for file in `find /home/workspace/ccorreia/globin/salmon_quant/horse/ \
+-name salmon_quant.log`; \
+do sample=`dirname $file | perl -p -e 's/.+_(SRR\d+).+/$1/'`; \
+oldname=`basename $file`; \
+path=`dirname $file`; \
+mv $file $path/${sample}_$oldname; \
+done
+
+# Gather salmon log information from all samples into one file:
+for file in `find /home/workspace/ccorreia/globin/salmon_quant/horse/ \
+-name SRR*salmon_quant.log`; \
+do echo echo \
+"\`basename $file\` \
+\`grep 'likely library type' $file | awk '{print \$12}'\` \
+\`grep 'total fragments' $file | awk '{print \$2}'\` \
+\`grep 'total reads' $file | awk '{print \$6}'\` \
+\`grep 'Mapping rate' $file | awk '{print \$8}'\` >> \
+salmon_summary_horse.txt" >> salmon_summary_horse.sh
+done
+
+chmod 755 salmon_summary_horse.sh
+./salmon_summary_horse.sh
+
+sed -i $'1 i\\\nFile_name Library_type Total_fragments Total_reads Mapping_rate(%)' \
+salmon_summary_horse.txt
+
+# Transfer summary file from Rodeo to laptop:
+scp ccorreia@remoteserver:/home/workspace/ccorreia/globin/salmon_quant/horse/salmon_summary_horse.txt .
+
+
+
+# Following steps will be performed in R.
+
+
+
+
+
+
 
