@@ -285,54 +285,256 @@ head(pig_genes)
 ############################################
 
 # Remove non-expressed genes
-h_TPM_nozeros <- human_TPM[rowSums(human_TPM) > 0, ]
-dim(h_TPM_nozeros)
-dim(human_TPM)
-
-p_TPM_nozeros <- pig_TPM[rowSums(pig_TPM) > 0, ]
-dim(p_TPM_nozeros)
-dim(pig_TPM)
-
-c_TPM_nozeros <- cattle_TPM[rowSums(cattle_TPM) > 0, ]
-dim(c_TPM_nozeros)
+cattle_nozeros <- cattle_TPM[rowSums(cattle_TPM) > 0, ]
+dim(cattle_nozeros)
 dim(cattle_TPM)
 
-# Remove lowly expressed genes (< 1 TPM)
-h_TPM_filt <- h_TPM_nozeros[rowSums(h_TPM_nozeros >= 1) >= 12, ]
-dim(h_TPM_filt)
-dim(h_TPM_nozeros)
+horse_nozeros <- horse_TPM[rowSums(horse_TPM) > 0, ]
+dim(horse_nozeros)
+dim(horse_TPM)
 
-p_TPM_filt <- p_TPM_nozeros[rowSums(p_TPM_nozeros >= 1) >= 12, ]
-dim(p_TPM_filt)
-dim(p_TPM_nozeros)
+human_nozeros <- human_TPM[rowSums(human_TPM) > 0, ]
+dim(human_nozeros)
+dim(human_TPM)
 
-c_TPM_filt <- c_TPM_nozeros[rowSums(c_TPM_nozeros >= 1) >= 10, ]
-dim(c_TPM_filt)
-dim(c_TPM_nozeros)
+pig_nozeros <- pig_TPM[rowSums(pig_TPM) > 0, ]
+dim(pig_nozeros)
+dim(pig_TPM)
 
+# Remove lowly expressed genes (< 1 TPM in one treatment group)
+cattle_filt <- cattle_nozeros[rowSums(cattle_nozeros >= 1) >= 10, ]
+dim(cattle_filt)
+dim(cattle_nozeros)
 
-# Tidy filt TPM dfs
-h_TPM_filt %<>% 
+horse_filt <- horse_nozeros[rowSums(horse_nozeros >= 1) >= 37, ]
+dim(horse_filt)
+dim(horse_nozeros)
+
+human_filt <- human_nozeros[rowSums(human_nozeros >= 1) >= 12, ]
+dim(human_filt)
+dim(human_nozeros)
+
+pig_filt <- pig_nozeros[rowSums(pig_nozeros >= 1) >= 12, ]
+dim(pig_filt)
+dim(pig_nozeros)
+
+####################################
+# 08 Tidy filtered TPM data frames #
+####################################
+
+cattle_filt %<>% 
     rownames_to_column(var = "Ensembl_gene_ID") %>% 
     melt(value.name = "TPM") %>% 
     dplyr::rename(sample = variable)
 
-head(h_TPM_filt)
-
-p_TPM_filt %<>% 
+horse_filt %<>% 
     rownames_to_column(var = "Ensembl_gene_ID") %>% 
     melt(value.name = "TPM") %>% 
     dplyr::rename(sample = variable)
 
-head(p_TPM_filt)
-
-c_TPM_filt %<>% 
+human_filt %<>% 
     rownames_to_column(var = "Ensembl_gene_ID") %>% 
     melt(value.name = "TPM") %>% 
     dplyr::rename(sample = variable)
 
-head(c_TPM_filt)
+pig_filt %<>% 
+    rownames_to_column(var = "Ensembl_gene_ID") %>% 
+    melt(value.name = "TPM") %>% 
+    dplyr::rename(sample = variable)
 
+# Check reformatted data frames
+head(cattle_filt)
+head(horse_filt)
+head(human_filt)
+head(pig_filt)
+
+#########################################################
+# 09 Row-bind filtered TPM data frames from all species #
+#########################################################
+
+TPM_filt_all <- dplyr::bind_rows(cattle_filt, horse_filt)
+TPM_filt_all <- dplyr::bind_rows(TPM_filt_all, human_TPM_filt)
+
+cattle_filt %>% 
+    dplyr::bind_rows(horse_filt) %>% 
+    dplyr::bind_rows(human_filt) %>% 
+    dplyr::bind_rows(pig_filt) %>% 
+    as.tibble() -> TPM_filt_all
+
+# Check total number of rows
+dim(TPM_filt_all)
+dim(cattle_filt) + dim(horse_filt) + dim(human_filt) + dim(pig_filt)
+
+#####################################################
+# 10 Add plotting labels to filtered TPM data frame #
+#####################################################
+
+# Create new column
+TPM_filt_all$labels <- TPM_filt_all$sample
+
+# Correct plotting labels
+TPM_filt_all$labels %<>%
+    str_replace("_quant.sf", "") %>% 
+    str_replace("NGD_(FALSE|TRUE)_", "") %>% 
+    str_replace("GD_(FALSE|TRUE)_", "") %>% 
+    str_replace("Subj10", "Hsa_P10_D") %>% 
+    str_replace("Subj11", "Hsa_P11_D") %>% 
+    str_replace("Subj12", "Hsa_P12_D") %>% 
+    str_replace("Subj13", "Hsa_S01_U") %>% 
+    str_replace("Subj14", "Hsa_S02_U") %>% 
+    str_replace("Subj15", "Hsa_S03_U") %>% 
+    str_replace("Subj16", "Hsa_S04_U") %>% 
+    str_replace("Subj17", "Hsa_S05_U") %>% 
+    str_replace("Subj18", "Hsa_S06_U") %>% 
+    str_replace("Subj19", "Hsa_P19_U") %>% 
+    str_replace("Subj20", "Hsa_P20_U") %>% 
+    str_replace("Subj21", "Hsa_P21_U") %>% 
+    str_replace("Subj22", "Hsa_P22_U") %>% 
+    str_replace("Subj23", "Hsa_P23_U") %>% 
+    str_replace("Subj24", "Hsa_P24_U") %>% 
+    str_replace("Subj1", "Hsa_S01_D") %>% 
+    str_replace("Subj2", "Hsa_S02_D") %>% 
+    str_replace("Subj3", "Hsa_S03_D") %>% 
+    str_replace("Subj4", "Hsa_S04_D") %>% 
+    str_replace("Subj5", "Hsa_S05_D") %>% 
+    str_replace("Subj6", "Hsa_S06_D") %>% 
+    str_replace("Subj7", "Hsa_P07_D") %>% 
+    str_replace("Subj8", "Hsa_P08_D") %>% 
+    str_replace("Subj9", "Hsa_P09_D") %>% 
+    str_replace("7197", "Ssc_01") %>% 
+    str_replace("7199", "Ssc_02") %>% 
+    str_replace("7210", "Ssc_03") %>% 
+    str_replace("7312", "Ssc_04") %>% 
+    str_replace("7349", "Ssc_05") %>%
+    str_replace("7413", "Ssc_06") %>%
+    str_replace("7437", "Ssc_07") %>%
+    str_replace("7439", "Ssc_08") %>%
+    str_replace("7467", "Ssc_09") %>%
+    str_replace("7468", "Ssc_10") %>%
+    str_replace("7472", "Ssc_11") %>%
+    str_replace("7474", "Ssc_12") %>%
+    str_replace("(CT|C)", "_U") %>% 
+    str_replace("(GD|T)", "_D") %>% 
+    str_replace("A", "") %>% 
+    str_replace("_W-1_F", "") %>%
+    str_replace("6511", "Bta_01_U") %>%
+    str_replace("6514", "Bta_02_U") %>%
+    str_replace("6520", "Bta_03_U") %>%
+    str_replace("6522", "Bta_04_U") %>%
+    str_replace("6526", "Bta_05_U") %>%
+    str_replace("6635", "Bta_06_U") %>%
+    str_replace("6636", "Bta_07_U") %>%
+    str_replace("6637", "Bta_08_U") %>%
+    str_replace("6644", "Bta_09_U") %>%
+    str_replace("6698", "Bta_10_U") %>% 
+    str_replace("SRR3671009", "Eca_T01") %>%
+    str_replace("SRR3671010", "Eca_T02") %>%
+    str_replace("SRR3671011", "Eca_T03") %>%
+    str_replace("SRR3671012", "Eca_T04") %>%
+    str_replace("SRR3671013", "Eca_T05") %>%
+    str_replace("SRR3671014", "Eca_T06") %>%
+    str_replace("SRR3671015", "Eca_T07") %>%
+    str_replace("SRR3671016", "Eca_T08") %>%
+    str_replace("SRR3671017", "Eca_T09") %>%
+    str_replace("SRR3671018", "Eca_T10") %>%
+    str_replace("SRR3671019", "Eca_T11") %>%
+    str_replace("SRR3671020", "Eca_T12") %>%
+    str_replace("SRR3671021", "Eca_S13") %>%
+    str_replace("SRR3671022", "Eca_T14") %>%
+    str_replace("SRR3671023", "Eca_T15") %>%
+    str_replace("SRR3671024", "Eca_T16") %>%
+    str_replace("SRR3671025", "Eca_T17") %>%
+    str_replace("SRR3671026", "Eca_T18") %>%
+    str_replace("SRR3671027", "Eca_T19") %>%
+    str_replace("SRR3671028", "Eca_T20") %>%
+    str_replace("SRR3671029", "Eca_T21") %>%
+    str_replace("SRR3671030", "Eca_T22") %>%
+    str_replace("SRR3671031", "Eca_T23") %>%
+    str_replace("SRR3671032", "Eca_T24") %>%
+    str_replace("SRR3671033", "Eca_T25") %>%
+    str_replace("SRR3671034", "Eca_T26") %>%
+    str_replace("SRR3671035", "Eca_T27") %>%
+    str_replace("SRR3671036", "Eca_T28") %>%
+    str_replace("SRR3671037", "Eca_T29") %>%
+    str_replace("SRR3671038", "Eca_T30") %>%
+    str_replace("SRR3671039", "Eca_T31") %>%
+    str_replace("SRR3671040", "Eca_T32") %>%
+    str_replace("SRR3671041", "Eca_S33") %>%
+    str_replace("SRR3671042", "Eca_S34") %>%
+    str_replace("SRR3671043", "Eca_S35") %>%
+    str_replace("SRR3671044", "Eca_S36") %>%
+    str_replace("SRR3671045", "Eca_S37")
+
+# Check labels
+unique(TPM_filt_all$labels)
+
+# Convert labels into factors and order them
+TPM_filt_all$labels %<>%
+    factor(levels = c("Hsa_S01_U", "Hsa_S02_U", "Hsa_S03_U", "Hsa_S04_U",
+                      "Hsa_S05_U", "Hsa_S06_U", "Hsa_P19_U", "Hsa_P20_U",
+                      "Hsa_P21_U", "Hsa_P22_U", "Hsa_P23_U", "Hsa_P24_U",
+                      "Hsa_S01_D", "Hsa_S02_D", "Hsa_S03_D", "Hsa_S04_D",
+                      "Hsa_S05_D", "Hsa_S06_D", "Hsa_P07_D", "Hsa_P08_D",
+                      "Hsa_P09_D", "Hsa_P10_D", "Hsa_P11_D", "Hsa_P12_D",
+                      "Ssc_01_U", "Ssc_02_U", "Ssc_03_U", "Ssc_04_U",
+                      "Ssc_05_U", "Ssc_06_U", "Ssc_07_U", "Ssc_08_U",
+                      "Ssc_09_U", "Ssc_10_U", "Ssc_11_U", "Ssc_12_U",
+                      "Ssc_01_D", "Ssc_02_D", "Ssc_03_D", "Ssc_04_D",
+                      "Ssc_05_D", "Ssc_06_D", "Ssc_07_D", "Ssc_08_D",
+                      "Ssc_09_D", "Ssc_10_D", "Ssc_11_D", "Ssc_12_D",
+                      "Eca_T01_U", "Eca_T02_U", "Eca_T03_U", "Eca_T04_U",
+                      "Eca_T05_U", "Eca_T06_U", "Eca_T07_U", "Eca_T08_U",
+                      "Eca_T09_U", "Eca_T10_U", "Eca_T11_U", "Eca_T12_U",
+                      "Eca_S13_U", "Eca_T14_U", "Eca_T15_U", "Eca_T16_U",
+                      "Eca_T17_U", "Eca_T18_U", "Eca_T19_U", "Eca_T20_U",
+                      "Eca_T21_U", "Eca_T22_U", "Eca_T23_U", "Eca_T24_U",
+                      "Eca_T25_U", "Eca_T26_U", "Eca_T27_U", "Eca_T28_U",
+                      "Eca_T29_U", "Eca_T30_U", "Eca_T31_U", "Eca_T32_U",
+                      "Eca_S33_U", "Eca_S34_U", "Eca_S35_U", "Eca_S36_U",
+                      "Eca_S37_U", "Bta_01_U", "Bta_02_U", "Bta_03_U",
+                      "Bta_04_U", "Bta_05_U", "Bta_06_U", "Bta_07_U",
+                      "Bta_08_U", "Bta_09_U", "Bta_10_U"))
+
+# Check factor order
+levels(TPM_filt_all$labels)
+
+####################################################
+# 11 Add treatment info to filtered TPM data frame #
+####################################################
+
+# Create new column
+TPM_filt_all$treatment <- TPM_filt_all$labels
+
+# Correct info and convert into factor
+TPM_filt_all$treatment %<>% 
+    stringr::str_replace("Bta_\\d\\d_", "") %>% 
+    stringr::str_replace("Eca_(T|S)\\d\\d_", "") %>% 
+    stringr::str_replace("Hsa_(S|P)\\d\\d_", "") %>% 
+    stringr::str_replace("Ssc_\\d\\d_", "") %>%
+    stringr::str_replace("U", "Undepleted") %>% 
+    stringr::str_replace("D", "Globin depleted") %>%
+    factor(levels = c("Undepleted", "Globin depleted"))
+
+# Check treatment factors
+levels(TPM_filt_all$treatment)
+
+##################################################
+# 12 Add species info to filtered TPM data frame #
+##################################################
+
+# Add species column A_TPM_filt
+TPM_filt_all$species <- TPM_filt_all$Ensembl_gene_ID
+
+# Correct info and convert into factor
+TPM_filt_all$species %<>%
+    stringr::str_replace("ENSG0.+", "Human") %>% 
+    stringr::str_replace("ENSSSCG0.+", "Porcine") %>% 
+    stringr::str_replace("ENSECAG0.+", "Equine") %>%
+    stringr::str_replace("ENSBTAG0.+", "Bovine") %>% 
+    factor(levels = c("Human", "Porcine", "Equine", "Bovine"))
+
+# Check species factors
+levels(TPM_filt_all$species)
 
 #####################
 #  Save .RData file #
