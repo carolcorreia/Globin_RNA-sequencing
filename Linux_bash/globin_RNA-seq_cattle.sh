@@ -7,7 +7,7 @@
 # DOI badge: 
 # Author: Correia, C.N.
 # Version 1.0.0
-# Last updated on: 02/08/2017
+# Last updated on: 10/08/2017
 
 ################################
 # Download and files check sum #
@@ -245,18 +245,22 @@ rm -rf $HOME/scratch/PPDbRNAseqTimeCourse/quality_check/post-filtering/tmp
 ### Moved trimmed reads to Rodeo.
 ### Following steps were conducted in Ubuntu 14.04
 
-############################################################
-# Download reference transcriptome from Ensembl release 88 #
-############################################################
+##############################################
+# Download reference transcriptome from UCSC #
+##############################################
+
+# Dec. 2009 (UMD_3.1.1/bosTau8) assembly of the cow genome
+# (bosTau8, University of Maryland Bos_taurus_UMD_3.1.1).
+# http://hgdownload.soe.ucsc.edu/goldenPath/bosTau8/bigZips/
 
 # Create and enter working directory:
-mkdir -p /home/workspace/ccorreia/globin/transcriptomes/cattle/source_file
+mkdir -p /home/workspace/ccorreia/globin/UCSC/transcriptomes/cattle/source_file
 cd !$
 
 # Download and unzip the transcriptome:
-nohup wget ftp://ftp.ensembl.org/pub/release-88/fasta/bos_taurus/cdna/Bos_taurus.UMD3.1.cdna.all.fa.gz &
-gunzip Bos_taurus.UMD3.1.cdna.all.fa.gz
-
+nohup wget http://hgdownload.soe.ucsc.edu/goldenPath/bosTau8/bigZips/refMrna.fa.gz &
+gunzip refMrna.fa.gz
+mv refMrna.fa bta_refMrna.fa
 
 ##############################################
 # Build the transcriptome index using Salmon #
@@ -266,25 +270,25 @@ gunzip Bos_taurus.UMD3.1.cdna.all.fa.gz
 http://salmon.readthedocs.io/en/latest/
 
 # Enter working directory:
-cd /home/workspace/ccorreia/globin/transcriptomes/cattle
+cd /home/workspace/ccorreia/globin/UCSC/transcriptomes/cattle
 
 # Build an index for quasi-mapping:
 nohup salmon index -t \
-/home/workspace/ccorreia/globin/transcriptomes/cattle/source_file/Bos_taurus.UMD3.1.cdna.all.fa \
+/home/workspace/ccorreia/globin/UCSC/transcriptomes/cattle/source_file/bta_refMrna.fa \
 -i cattle_index --type quasi -k 31 -p 20 &
-
 
 #####################################
 # Quantify transcripts using Salmon #
 #####################################
 
 # Create and enter working directory:
-mkdir -p /home/workspace/ccorreia/globin/salmon_quant/cattle
+mkdir -p /home/workspace/ccorreia/globin/UCSC/salmon_quant/cattle
 cd !$
 
 # Quantify transcripts from one FASTQ file to check if it works well:
-salmon quant -i /home/workspace/ccorreia/globin/transcriptomes/cattle/cattle_index \
--l A -1 \
+salmon quant -i /home/workspace/ccorreia/globin/UCSC/transcriptomes/cattle/cattle_index \
+-l A --seqBias --gcBias \
+-1 \
 /home/workspace/ccorreia/globin/fastq_sequence/cattle/trimmed_A6511_W-1_F_R1_001.fastq.gz \
 /home/workspace/ccorreia/globin/fastq_sequence/cattle/trimmed_A6511_W-1_F_R1_002.fastq.gz \
 /home/workspace/ccorreia/globin/fastq_sequence/cattle/trimmed_A6511_W-1_F_R1_003.fastq.gz \
@@ -296,7 +300,7 @@ salmon quant -i /home/workspace/ccorreia/globin/transcriptomes/cattle/cattle_ind
 /home/workspace/ccorreia/globin/fastq_sequence/cattle/trimmed_A6511_W-1_F_R2_003.fastq.gz \
 /home/workspace/ccorreia/globin/fastq_sequence/cattle/trimmed_A6511_W-1_F_R2_004.fastq.gz \
 /home/workspace/ccorreia/globin/fastq_sequence/cattle/trimmed_A6511_W-1_F_R2_005.fastq.gz \
--p 15 -o ./A6511_W-1_F
+-p 15 -o ./A6511_W-1_F 
 
 # Create a bash script to perform quantification of paired FASTQ files sequenced
 # over different lanes.
@@ -313,23 +317,19 @@ read4=`echo $file4 | perl -p -e 's/(R1_00.)/R2_004/'`; \
 read5=`echo $file5 | perl -p -e 's/(R1_00.)/R2_005/'`; \
 sample=`basename $file | perl -p -e 's/trimmed_(A\d\d\d\d_W\-1_F).*\.fastq\.gz/$1/'`; \
 echo "salmon quant -i \
-/home/workspace/ccorreia/globin/transcriptomes/cattle/cattle_index \
--l A -1 $file $file2 $file3 $file4 $file5 \
+/home/workspace/ccorreia/globin/UCSC/transcriptomes/cattle/cattle_index \
+-l A --seqBias --gcBias -1 $file $file2 $file3 $file4 $file5 \
 -2 $read1 $read2 $read3 $read4 $read5 \
 -p 15 -o ./$sample" \
 >> quantify.sh; \
 done
 
-# Split and run all scripts on Rodeo:
-split -d -l 5 quantify.sh quantify.sh.
-for script in `ls quantify.sh.*`
-do
-chmod 755 $script
-nohup ./$script > ${script}.nohup &
-done
+# Run script on Rodeo:
+chmod 755 quantify.sh
+nohup ./quantify.sh > quantify.sh.nohup &
 
 # Append sample name to all quant.sf files:
-for file in `find /home/workspace/ccorreia/globin/salmon_quant/cattle \
+for file in `find /home/workspace/ccorreia/globin/UCSC/salmon_quant/cattle \
 -name quant.sf`; \
 do oldname=`basename $file`; \
 newname=`dirname $file | perl -p -e 's/.+(A\d\d\d\d_W\-1_F)/$1/'`; \
@@ -338,20 +338,20 @@ mv $file $path/${newname}_$oldname; \
 done
 
 # Move all *quant.sf files to a temporary folder:
-mkdir /home/workspace/ccorreia/globin/salmon_quant/cattle/cattle_TPM
-for file in `find /home/workspace/ccorreia/globin/salmon_quant/cattle \
+mkdir /home/workspace/ccorreia/globin/UCSC/salmon_quant/cattle/cattle_TPM
+for file in `find /home/workspace/ccorreia/globin/UCSC/salmon_quant/cattle \
 -name A*quant.sf`; \
-do cp $file -t /home/workspace/ccorreia/globin/salmon_quant/cattle/cattle_TPM; \
+do cp $file -t /home/workspace/ccorreia/globin/UCSC/salmon_quant/cattle/cattle_TPM; \
 done
 
 # Transfer all files from Rodeo to laptop:
-scp -r ccorreia@servername:/home/workspace/ccorreia/globin/salmon_quant/cattle/cattle_TPM .
+scp -r ccorreia@servername:/home/workspace/ccorreia/globin/UCSC/salmon_quant/cattle/cattle_TPM .
 
 # Remove tmp folder from Rodeo:
 rm -r cattle_TPM
 
 # Append sample name to all log files:
-for file in `find /home/workspace/ccorreia/globin/salmon_quant/cattle/ \
+for file in `find /home/workspace/ccorreia/globin/UCSC/salmon_quant/cattle/ \
 -name salmon_quant.log`; \
 do oldname=`basename $file`; \
 newname=`dirname $file | perl -p -e 's/.+(A\d\d\d\d_W\-1_F).+/$1/'`; \
@@ -360,28 +360,31 @@ mv $file $path/${newname}_$oldname; \
 done
 
 # Gather salmon log information from all samples into one file:
-for file in `find /home/workspace/ccorreia/globin/salmon_quant/cattle/ \
--name 7*salmon_quant.log`; \
+for file in `find /home/workspace/ccorreia/globin/UCSC/salmon_quant/cattle/ \
+-name A*salmon_quant.log`; \
 do echo echo \
 "\`basename $file\` \
 \`grep 'likely library type' $file | awk '{print \$12}'\` \
 \`grep 'total fragments' $file | awk '{print \$2}'\` \
 \`grep 'total reads' $file | awk '{print \$6}'\` \
 \`grep 'Mapping rate' $file | awk '{print \$8}'\` >> \
-salmon_summary_cattle.txt" >> salmon_summary_cattle.sh
+UCSC_summary_cattle.txt" >> UCSC_summary_cattle.sh
 done
 
-chmod 755 salmon_summary_cattle.sh
-./salmon_summary_cattle.sh
+chmod 755 UCSC_summary_cattle.sh
+./UCSC_summary_cattle.sh
 
 sed -i $'1 i\\\nFile_name Library_type Total_fragments Total_reads Mapping_rate(%)' \
-salmon_summary_cattle.txt
+UCSC_summary_cattle.txt
 
 # Transfer summary file from Rodeo to laptop:
-scp -r ccorreia@servername:/home/workspace/ccorreia/globin/salmon_quant/cattle/salmon_summary_cattle.txt .
+scp -r ccorreia@servername:/home/workspace/ccorreia/globin/UCSC/salmon_quant/cattle/UCSC_summary_cattle.txt .
 
-# Following steps were performed in R.
+#######################################
+# Following steps were performed in R #
+#######################################
 
+# Please check this file sfor following steps: 01-GlobinRNA-seqAnalysis.R
 
 
 

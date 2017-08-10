@@ -1,13 +1,13 @@
 ##############################################################################
 #      RNA-seq analysis of reticulocyte-derived globin gene transcripts      #
-#             (HBA and HBB) in horse peripheral blood samples                #
+#             (HBA and HBB) in equine peripheral blood samples               #
 #                  --- Linux bioinformatics workflow ---                     #
 ##############################################################################
 
 # DOI badge: 
 # Author: Correia, C.N.
 # Version 1.0.0
-# Last updated on: 25/07/2017
+# Last updated on: 10/08/2017
 
 #####################################
 # Download raw FASTQ files from ENA #
@@ -223,17 +223,21 @@ done
 rm -r /home/workspace/ccorreia/globin/quality_check/post-filtering/horse/tmp
 
 
-############################################################
-# Download reference transcriptome from Ensembl release 88 #
-############################################################
+##############################################
+# Download reference transcriptome from UCSC #
+##############################################
+
+# Sep. 2007 assembly of the horse genome (equCab2, Broad Institute EquCab2).
+# http://hgdownload.soe.ucsc.edu/goldenPath/equCab2/bigZips/
 
 # Create and enter working directory:
-mkdir -p /home/workspace/ccorreia/globin/transcriptomes/horse/source_file
+mkdir -p /home/workspace/ccorreia/globin/UCSC/transcriptomes/horse/source_file
 cd !$
 
 # Download and unzip the transcriptome:
-nohup wget ftp://ftp.ensembl.org/pub/release-88/fasta/equus_caballus/cdna/Equus_caballus.EquCab2.cdna.all.fa.gz &
-gunzip Equus_caballus.EquCab2.cdna.all.fa.gz
+nohup wget http://hgdownload.soe.ucsc.edu/goldenPath/equCab2/bigZips/refMrna.fa.gz &
+gunzip refMrna.fa.gz
+mv refMrna.fa eca_refMrna.fa
 
 ##############################################
 # Build the transcriptome index using Salmon #
@@ -243,11 +247,11 @@ gunzip Equus_caballus.EquCab2.cdna.all.fa.gz
 http://salmon.readthedocs.io/en/latest/
 
 # Enter working directory:
-cd /home/workspace/ccorreia/globin/transcriptomes/horse
+cd /home/workspace/ccorreia/globin/UCSC/transcriptomes/horse
 
 # Build an index for quasi-mapping:
 nohup salmon index -t \
-/home/workspace/ccorreia/globin/transcriptomes/horse/source_file/Equus_caballus.EquCab2.cdna.all.fa \
+/home/workspace/ccorreia/globin/UCSC/transcriptomes/horse/source_file/eca_refMrna.fa \
 -i horse_index --type quasi -k 31 -p 20 &
 
 
@@ -256,33 +260,30 @@ nohup salmon index -t \
 #####################################
 
 # Create and enter working directory:
-mkdir -p /home/workspace/ccorreia/globin/salmon_quant/horse
+mkdir -p /home/workspace/ccorreia/globin/UCSC/salmon_quant/horse
 cd !$
 
 # Quantify transcripts from one FASTQ file to check if it works well:
-salmon quant -i /home/workspace/ccorreia/globin/transcriptomes/horse/horse_index \
--l A -r /home/workspace/ccorreia/globin/fastq_sequence/horse/SRR3671009/trimmed_SRR3671009.fastq.gz \
+salmon quant -i /home/workspace/ccorreia/globin/UCSC/transcriptomes/horse/horse_index \
+-l A  --seqBias --gcBias \
+-r /home/workspace/ccorreia/globin/fastq_sequence/horse/SRR3671009/trimmed_SRR3671009.fastq.gz \
 -p 15 -o ./SRR3671009
 
 # Create a bash script to perform quantification of FASTQ files sequenced:
 for file in `find /home/workspace/ccorreia/globin/fastq_sequence/horse \
 -name *.fastq.gz`; \
 do sample=`basename $file | perl -p -e 's/.fastq.gz//'`; \
-echo "salmon quant -i /home/workspace/ccorreia/globin/transcriptomes/horse/horse_index \
--l A -r $file -p 15 -o ./$sample" \
->> quant.sh; \
+echo "salmon quant -i /home/workspace/ccorreia/globin/UCSC/transcriptomes/horse/horse_index \
+-l A --seqBias --gcBias -r $file -p 15 -o ./$sample" \
+>> quantify.sh; \
 done
 
-# Split and run all scripts on Rodeo:
-split -d -l 20 quant.sh quant.sh.
-for script in `ls quant.sh.*`
-do
-chmod 755 $script
-nohup ./$script > ${script}.nohup &
-done
+# Run script on Rodeo:
+chmod 755 quantify.sh
+nohup ./quantify.sh > quantify.sh.nohup &
 
 # Append sample name to all quant.sf files to temporary folder:
-for file in `find /home/workspace/ccorreia/globin/salmon_quant/horse \
+for file in `find /home/workspace/ccorreia/globin/UCSC/salmon_quant/horse \
 -name quant.sf`; \
 do sample=`dirname $file | perl -p -e 's/.+_(SRR\d+)/$1/'`; \
 oldname=`basename $file`; \
@@ -291,20 +292,20 @@ mv $file $path/${sample}_$oldname; \
 done
 
 # Move all *quant.sf files to a temporary folder:
-mkdir /home/workspace/ccorreia/globin/salmon_quant/horse/horse_TPM
-for file in `find /home/workspace/ccorreia/globin/salmon_quant/horse \
+mkdir /home/workspace/ccorreia/globin/UCSC/salmon_quant/horse/horse_TPM
+for file in `find /home/workspace/ccorreia/globin/UCSC/salmon_quant/horse \
 -name SRR*quant.sf`; \
-do cp $file -t /home/workspace/ccorreia/globin/salmon_quant/horse/horse_TPM; \
+do cp $file -t /home/workspace/ccorreia/globin/UCSC/salmon_quant/horse/horse_TPM; \
 done
 
 # Transfer all files from Rodeo to laptop:
-scp -r ccorreia@remoteserver:/home/workspace/ccorreia/globin/salmon_quant/horse/horse_TPM .
+scp -r ccorreia@remoteserver:/home/workspace/ccorreia/globin/UCSC/salmon_quant/horse/horse_TPM .
 
 # Remove tmp folder from Rodeo:
 rm -r horse_TPM
 
 # Append sample name to all log files:
-for file in `find /home/workspace/ccorreia/globin/salmon_quant/horse/ \
+for file in `find /home/workspace/ccorreia/globin/UCSC/salmon_quant/horse/ \
 -name salmon_quant.log`; \
 do sample=`dirname $file | perl -p -e 's/.+_(SRR\d+).+/$1/'`; \
 oldname=`basename $file`; \
@@ -313,7 +314,7 @@ mv $file $path/${sample}_$oldname; \
 done
 
 # Gather salmon log information from all samples into one file:
-for file in `find /home/workspace/ccorreia/globin/salmon_quant/horse/ \
+for file in `find /home/workspace/ccorreia/globin/UCSC/salmon_quant/horse/ \
 -name SRR*salmon_quant.log`; \
 do echo echo \
 "\`basename $file\` \
@@ -321,21 +322,23 @@ do echo echo \
 \`grep 'total fragments' $file | awk '{print \$2}'\` \
 \`grep 'total reads' $file | awk '{print \$6}'\` \
 \`grep 'Mapping rate' $file | awk '{print \$8}'\` >> \
-salmon_summary_horse.txt" >> salmon_summary_horse.sh
+UCSC_summary_horse.txt" >> UCSC_summary_horse.sh
 done
 
-chmod 755 salmon_summary_horse.sh
-./salmon_summary_horse.sh
+chmod 755 UCSC_summary_horse.sh
+./UCSC_summary_horse.sh
 
 sed -i $'1 i\\\nFile_name Library_type Total_fragments Total_reads Mapping_rate(%)' \
-salmon_summary_horse.txt
+UCSC_summary_horse.txt
 
 # Transfer summary file from Rodeo to laptop:
-scp ccorreia@remoteserver:/home/workspace/ccorreia/globin/salmon_quant/horse/salmon_summary_horse.txt .
+scp ccorreia@remoteserver:/home/workspace/ccorreia/globin/UCSC/salmon_quant/horse/UCSC_summary_horse.txt .
 
+#######################################
+# Following steps were performed in R #
+#######################################
 
-
-# Following steps will be performed in R.
+# Please check this file sfor following steps: 01-GlobinRNA-seqAnalysis.R
 
 
 
