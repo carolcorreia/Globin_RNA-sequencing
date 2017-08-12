@@ -3,7 +3,7 @@
 #####################
 
 # Author: Carolina N. Correia
-# Date: August 3rd 2017
+# Date: August 12th 2017
 
 # Load packages
 library(plyr)
@@ -13,11 +13,10 @@ library(stringr)
 library(repurrrsive)
 
 # Set working directory
-setwd("/Users/ccorreia/Dropbox/CSF/Animal_Genomics/Globin/R")
-getwd()
+setwd("/Users/ccorreia/Dropbox/CSF/Animal_Genomics/Globin/salmon/summary_quant")
 
 # Define variables for specific directories
-summDir <- "/Users/ccorreia/Dropbox/CSF/Animal_Genomics/Globin/salmon/summary_quant"
+summDir <- getwd()
 tablesDir <- c("/Users/ccorreia/Dropbox/CSF/Animal_Genomics/Globin/tables")
 
 # Create a vector with full paths to the salmon summary files
@@ -91,44 +90,43 @@ salmon_stats$labels %<>%
     str_replace("6637", "Bta_08_U") %>%
     str_replace("6644", "Bta_09_U") %>%
     str_replace("6698", "Bta_10_U") %>% 
-    str_replace("SRR3671009", "Eca_T01") %>%
-    str_replace("SRR3671010", "Eca_T02") %>%
-    str_replace("SRR3671011", "Eca_T03") %>%
-    str_replace("SRR3671012", "Eca_T04") %>%
-    str_replace("SRR3671013", "Eca_T05") %>%
-    str_replace("SRR3671014", "Eca_T06") %>%
-    str_replace("SRR3671015", "Eca_T07") %>%
-    str_replace("SRR3671016", "Eca_T08") %>%
-    str_replace("SRR3671017", "Eca_T09") %>%
-    str_replace("SRR3671018", "Eca_T10") %>%
-    str_replace("SRR3671019", "Eca_T11") %>%
-    str_replace("SRR3671020", "Eca_T12") %>%
-    str_replace("SRR3671021", "Eca_S13") %>%
-    str_replace("SRR3671022", "Eca_T14") %>%
-    str_replace("SRR3671023", "Eca_T15") %>%
-    str_replace("SRR3671024", "Eca_T16") %>%
-    str_replace("SRR3671025", "Eca_T17") %>%
-    str_replace("SRR3671026", "Eca_T18") %>%
-    str_replace("SRR3671027", "Eca_T19") %>%
-    str_replace("SRR3671028", "Eca_T20") %>%
-    str_replace("SRR3671029", "Eca_T21") %>%
-    str_replace("SRR3671030", "Eca_T22") %>%
-    str_replace("SRR3671031", "Eca_T23") %>%
-    str_replace("SRR3671032", "Eca_T24") %>%
-    str_replace("SRR3671033", "Eca_T25") %>%
-    str_replace("SRR3671034", "Eca_T26") %>%
-    str_replace("SRR3671035", "Eca_T27") %>%
-    str_replace("SRR3671036", "Eca_T28") %>%
-    str_replace("SRR3671037", "Eca_T29") %>%
-    str_replace("SRR3671038", "Eca_T30") %>%
-    str_replace("SRR3671039", "Eca_T31") %>%
-    str_replace("SRR3671040", "Eca_T32") %>%
-    str_replace("SRR3671041", "Eca_S33") %>%
-    str_replace("SRR3671042", "Eca_S34") %>%
-    str_replace("SRR3671043", "Eca_S35") %>%
-    str_replace("SRR3671044", "Eca_S36") %>%
-    str_replace("SRR3671045", "Eca_S37")
-
+    str_replace("SRR3671009", "Eca_T01_U") %>%
+    str_replace("SRR3671010", "Eca_T02_U") %>%
+    str_replace("SRR3671011", "Eca_T03_U") %>%
+    str_replace("SRR3671012", "Eca_T04_U") %>%
+    str_replace("SRR3671013", "Eca_T05_U") %>%
+    str_replace("SRR3671014", "Eca_T06_U") %>%
+    str_replace("SRR3671015", "Eca_T07_U") %>%
+    str_replace("SRR3671016", "Eca_T08_U") %>%
+    str_replace("SRR3671017", "Eca_T09_U") %>%
+    str_replace("SRR3671018", "Eca_T10_U") %>%
+    str_replace("SRR3671019", "Eca_T11_U") %>%
+    str_replace("SRR3671020", "Eca_T12_U") %>%
+    str_replace("SRR3671021", "Eca_S13_U") %>%
+    str_replace("SRR3671022", "Eca_T14_U") %>%
+    str_replace("SRR3671023", "Eca_T15_U") %>%
+    str_replace("SRR3671024", "Eca_T16_U") %>%
+    str_replace("SRR3671025", "Eca_T17_U") %>%
+    str_replace("SRR3671026", "Eca_T18_U") %>%
+    str_replace("SRR3671027", "Eca_T19_U") %>%
+    str_replace("SRR3671028", "Eca_T20_U") %>%
+    str_replace("SRR3671029", "Eca_T21_U") %>%
+    str_replace("SRR3671030", "Eca_T22_U") %>%
+    str_replace("SRR3671031", "Eca_T23_U") %>%
+    str_replace("SRR3671032", "Eca_T24_U") %>%
+    str_replace("SRR3671033", "Eca_T25_U") %>%
+    str_replace("SRR3671034", "Eca_T26_U") %>%
+    str_replace("SRR3671035", "Eca_T27_U") %>%
+    str_replace("SRR3671036", "Eca_T28_U") %>%
+    str_replace("SRR3671037", "Eca_T29_U") %>%
+    str_replace("SRR3671038", "Eca_T30_U") %>%
+    str_replace("SRR3671039", "Eca_T31_U") %>%
+    str_replace("SRR3671040", "Eca_T32_U") %>%
+    str_replace("SRR3671041", "Eca_S33_U") %>%
+    str_replace("SRR3671042", "Eca_S34_U") %>%
+    str_replace("SRR3671043", "Eca_S35_U") %>%
+    str_replace("SRR3671044", "Eca_S36_U") %>%
+    str_replace("SRR3671045", "Eca_S37_U")
 
 
 # Export renamed salmon stats
