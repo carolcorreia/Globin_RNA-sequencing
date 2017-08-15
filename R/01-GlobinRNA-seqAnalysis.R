@@ -26,6 +26,7 @@ load("Globin-RNA-seqAnalysis.RData")
 # Load packages
 library(plyr)
 library(tidyverse)
+library(devtools)
 library(magrittr)
 library(stringr)
 library(forcats)
