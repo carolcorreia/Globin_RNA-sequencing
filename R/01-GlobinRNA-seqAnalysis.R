@@ -1,6 +1,6 @@
 # HBA1, HBA2, and HBB transcripts RNA-seq Analysis - Part 1
 # Author: Carolina C. Correia
-# Date: August 11th 2017
+# Date: August 16th 2017
 
 ##################################
 # 01 Working directory and RData #
@@ -8,14 +8,19 @@
 
 # Set working directory
 setwd("/Users/ccorreia/Dropbox/CSF/Animal_Genomics/Globin/R")
-getwd()
 
 # Define variables for specific directories
-cattleDir <- "/Users/ccorreia/Dropbox/CSF/Animal_Genomics/Globin/salmon/TPM/cattle_TPM"
-horseDir <- "/Users/ccorreia/Dropbox/CSF/Animal_Genomics/Globin/salmon/TPM/horse_TPM"
-humanDir <- "/Users/ccorreia/Dropbox/CSF/Animal_Genomics/Globin/salmon/TPM/human_TPM"
-pigDir <- "/Users/ccorreia/Dropbox/CSF/Animal_Genomics/Globin/salmon/TPM/pig_TPM"
+salmonDir <- "/Users/ccorreia/Dropbox/CSF/Animal_Genomics/Globin/salmon"
+humanDir <- file.path(paste0(salmonDir, "/TPM/human_TPM"))
+pigDir <- file.path(paste0(salmonDir, "/TPM/pig_TPM"))
+horseDir <- file.path(paste0(salmonDir, "/UCSC_TPM/horse_TPM"))
+cattleDir <- file.path(paste0(salmonDir, "/TPM/cattle_TPM"))
 
+gffDir <- file.path(paste0(getwd(), "/GFF3_RefSeq"))
+humanGFF <- file.path(paste0(gffDir, "/ref_GRCh38.p7_top_level.gff3"))
+pigGFF <- file.path(paste0(gffDir, "/ref_Sscrofa11.1_top_level.gff3"))
+cattleGFF <- file.path(paste0(gffDir, "/ref_Bos_taurus_UMD_3.1.1_top_level.gff3")) 
+    
 # Load previously saved data
 load("Globin-RNA-seqAnalysis.RData")
 
@@ -32,8 +37,6 @@ library(stringr)
 library(forcats)
 library(rtracklayer)
 library(GenomicFeatures)
-library(TxDb.Btaurus.UCSC.bosTau8.refGene)
-library(TxDb.Sscrofa.UCSC.susScr3.refGene)
 library(tximport)
 library(rjson)
 library(reshape2)
@@ -56,37 +59,61 @@ library(reshape2)
 #install.packages("rjson")
 #install.packages("reshape2")
 
-##############################################################
-# 03 Create/load UCSC TxDb objects for transcript annotation #
-##############################################################
+################################################################
+# 03 Create NCBI RefSeq TxDb objects for transcript annotation #
+#                      (human, pig, cow)                       #
+################################################################
 
-# UCSC genome refGene (NCBI RefSeq genes track) tables used:
-# Dec. 2013 (GRCh38/hg38) assembly of the human genome
-# Aug. 2011 (SGSC Sscrofa10.2/susScr3) assembly of the pig genome
-# Sep. 2007 (equCab2, Broad Institute EquCab2) assembly of the horse genome
-# Jun. 2014 (UMD_3.1.1/bosTau8) assembly of the cow genome
+# Human NCBI RefSeq .gff3 file used in this analysis
+# ftp://ftp.ncbi.nlm.nih.gov/genomes/Homo_sapiens/GFF/ref_GRCh38.p7_top_level.gff3.gz
+# ANNOTATION RELEASE NAME: NCBI Homo sapiens Annotation Release 108
+# ANNOTATION EVIDENCE FREEZE DATE: 5 May 2016
+# ANNOTATION RELEASE DATE: 6 June 2016
+# ANNOTATION REPORT: http://www.ncbi.nlm.nih.gov/genome/annotation_euk/Homo_sapiens/108/
+    
+# Pig NCBI RefSeq .gff3 file used in this analysis
+# ftp://ftp.ncbi.nlm.nih.gov/genomes/Sus_scrofa/GFF/ref_Sscrofa11.1_top_level.gff3.gz
+# ANNOTATION RELEASE NAME: NCBI Sus scrofa Annotation Release 106
+# ANNOTATION EVIDENCE FREEZE DATE: 3 May 2017
+# ANNOTATION RELEASE DATE: 13 May 2017
+# ANNOTATION REPORT: https://www.ncbi.nlm.nih.gov/genome/annotation_euk/Sus_scrofa/106/
 
-# Display the list of tables known to work with makeTxDbFromUCSC()
-supportedUCSCtables()
-
-# Assign existing TxDb refGene objects to variables
-pigDB <- TxDb.Sscrofa.UCSC.susScr3.refGene
-cattleDB <- TxDb.Btaurus.UCSC.bosTau8.refGene
-
-# Retrieve a full transcript dataset from UCSC for species
-# that don't have a TxDb refGene pkg on Bioconductor
-humanDB <- makeTxDbFromUCSC(genome = "hg38", tablename = "refGene")
-horseDB <- makeTxDbFromUCSC(genome = "equCab2", tablename = "refGene")
+# Cow NCBI RefSeq .gff3 file used in this analysis
+# ftp://ftp.ncbi.nih.gov/genomes/Bos_taurus/GFF/ref_Bos_taurus_UMD_3.1.1_top_level.gff3.gz
+# ANNOTATION RELEASE NAME: NCBI Bos taurus Annotation Release 105
+# ANNOTATION EVIDENCE FREEZE DATE: 20 January 2016
+# ANNOTATION RELEASE DATE: 26 January 2016
+# ANNOTATION REPORT: http://www.ncbi.nlm.nih.gov/genome/annotation_euk/Bos_taurus/105/
+    
+# Create DBs using .gff3 files
+humanDB <- makeTxDbFromGFF(humanGFF, format = "gff3")
+pigDB <- makeTxDbFromGFF(pigGFF, format = "gff3")
+cattleDB <- makeTxDbFromGFF(cattleGFF, format = "gff3")
 
 # Check databases info
 humanDB
 pigDB
-horseDB
 cattleDB
 
-############################################################################
-# 04 Create dataframe of transcripts and NCBI RefSeq gene IDs for tximport #
-############################################################################
+################################################################
+# 04 Create UCSC TxDb object for transcript annotation (horse) #
+################################################################
+
+# UCSC genome refGene (NCBI RefSeq genes track) table used: 
+# Sep. 2007 (equCab2, Broad Institute EquCab2) assembly of the horse genome
+
+# Display the list of tables known to work with makeTxDbFromUCSC()
+supportedUCSCtables()
+
+# Retrieve a full transcript dataset from UCSC
+horseDB <- makeTxDbFromUCSC(genome = "equCab2", tablename = "refGene")
+
+# Check DB info
+horseDB
+
+################################################################
+# 05 Create dataframe of transcripts and gene IDs for tximport #
+################################################################
 
 # Check DB key type
 keytypes(humanDB)
@@ -142,38 +169,36 @@ cattle_tx2gene %<>%
 head(cattle_tx2gene)
 
 ##############################################################
-# 05 Import salmon TPM estimates and summarise at gene-level #
+# 06 Import salmon TPM estimates and summarise at gene-level #
 ##############################################################
 
 # Get paths to salmon files
-cattle_files <- list.files(cattleDir, pattern = "quant.sf", full.names = TRUE)
-names(cattle_files) <- list.files(cattleDir)
-
-horse_files <- list.files(horseDir, pattern = "quant.sf", full.names = TRUE)
-names(horse_files) <- list.files(horseDir)
-
 human_files <- list.files(humanDir, pattern = "quant.sf", full.names = TRUE)
 names(human_files) <- list.files(humanDir)
 
 pig_files <- list.files(pigDir, pattern = "quant.sf", full.names = TRUE)
 names(pig_files) <- list.files(pigDir)
 
+horse_files <- list.files(horseDir, pattern = "quant.sf", full.names = TRUE)
+names(horse_files) <- list.files(horseDir)
+
+cattle_files <- list.files(cattleDir, pattern = "quant.sf", full.names = TRUE)
+names(cattle_files) <- list.files(cattleDir)
+
 # Import transcript-level estimates summarized to the gene-level
 # (it's the default when txOut = FALSE or not provided)
-# (ignoreTxVersion = TRUE otherwise the transcripts names in the GTF file 
+# (ignoreTxVersion = TRUE otherwise the horse transcripts names in the UCSC TxDb 
 # won't match the ones in salmon's quant.sf)
 human_txi <- tximport(human_files,
                       type = "salmon",
-                      tx2gene = human_tx2gene,
-                      ignoreTxVersion = TRUE)
+                      tx2gene = human_tx2gene)
 names(human_txi)
 head(human_txi$abundance)
 
 
 pig_txi <- tximport(pig_files,
                     type = "salmon",
-                    tx2gene = pig_tx2gene,
-                    ignoreTxVersion = TRUE)
+                    tx2gene = pig_tx2gene)
 names(pig_txi)
 head(pig_txi$abundance)
 
@@ -188,13 +213,12 @@ head(horse_txi$abundance)
 
 cattle_txi <- tximport(cattle_files,
                        type = "salmon",
-                       tx2gene = cattle_tx2gene,
-                       ignoreTxVersion = TRUE)
+                       tx2gene = cattle_tx2gene)
 names(cattle_txi)
 head(cattle_txi$abundance)
 
 ############################################
-# 06 Remove zero and lowly expressed genes #
+# 07 Remove zero and lowly expressed genes #
 ############################################
 
 # Convert gene-level TPM abundances into data frames 
@@ -238,62 +262,60 @@ dim(cattle_filt)
 dim(cattle_nozeros)
 
 ####################################
-# 07 Tidy filtered TPM data frames #
+# 08 Tidy filtered TPM data frames #
 ####################################
 human_filt %<>% 
-    rownames_to_column(var = "RefSeqID") %>% 
+    rownames_to_column(var = "Gene_RefSeqID") %>% 
     melt(value.name = "TPM") %>% 
     dplyr::rename(sample = variable) %>% 
-    dplyr::mutate(species = "Human") %>% 
-    as.tibble() 
+    dplyr::mutate(species = "Human")
 
 pig_filt %<>% 
-    rownames_to_column(var = "RefSeqID") %>% 
+    rownames_to_column(var = "Gene_RefSeqID") %>% 
     melt(value.name = "TPM") %>% 
     dplyr::rename(sample = variable) %>% 
-    dplyr::mutate(species = "Porcine") %>% 
-    as.tibble()
+    dplyr::mutate(species = "Porcine")
 
 horse_filt %<>% 
-    rownames_to_column(var = "RefSeqID") %>% 
+    rownames_to_column(var = "Gene_RefSeqID") %>% 
     melt(value.name = "TPM") %>% 
     dplyr::rename(sample = variable) %>% 
-    dplyr::mutate(species = "Equine") %>% 
-    as.tibble()
+    dplyr::mutate(species = "Equine")
 
 cattle_filt %<>% 
-    rownames_to_column(var = "RefSeqID") %>% 
+    rownames_to_column(var = "Gene_RefSeqID") %>% 
     melt(value.name = "TPM") %>% 
     dplyr::rename(sample = variable) %>% 
-    dplyr::mutate(species = "Bovine") %>% 
-    as.tibble()
+    dplyr::mutate(species = "Bovine")
 
 # Check reformatted data frames
-human_filt
-pig_filt
-horse_filt
-cattle_filt
+head(human_filt)
+head(pig_filt)
+head(horse_filt)
+head(cattle_filt)
 
 #########################################################
-# 08 Row-bind filtered TPM data frames from all species #
+# 09 Row-bind filtered TPM data frames from all species #
 #########################################################
 
 human_filt %>% 
-    dplyr::bind_rows(pig_filt) %>% 
-    dplyr::bind_rows(horse_filt) %>% 
-    dplyr::bind_rows(cattle_filt) -> TPM_filt_all
+dplyr::bind_rows(pig_filt) %>% 
+dplyr::bind_rows(horse_filt) %>% 
+dplyr::bind_rows(cattle_filt) %>% 
+    as.tibble() -> TPM_filt_all
 
 # Check total number of rows
-length(unique(TPM_filt_all$RefSeqID)) == length(unique(human_filt$RefSeqID)) +
-                                         length(unique(pig_filt$RefSeqID)) +
-                                         length(unique(horse_filt$RefSeqID)) +
-                                         length(unique(cattle_filt$RefSeqID))
+length(TPM_filt_all$Gene_RefSeqID) ==
+    length(human_filt$Gene_RefSeqID) +
+    length(pig_filt$Gene_RefSeqID) +
+    length(horse_filt$Gene_RefSeqID) +
+    length(cattle_filt$Gene_RefSeqID)
 
 # Visualise TPM df
 TPM_filt_all
 
 #######################################
-# 09 Convert species column to factor #
+# 10 Convert species column to factor #
 #######################################
 
 # Order of the levels match the order of the first appearance in the data
@@ -305,7 +327,7 @@ TPM_filt_all$species %<>%
 levels(TPM_filt_all$species)
 
 #####################################################
-# 10 Add plotting labels to filtered TPM data frame #
+# 11 Add plotting labels to filtered TPM data frame #
 #####################################################
 
 # Create new column
@@ -438,7 +460,7 @@ TPM_filt_all$labels %<>%
 levels(TPM_filt_all$labels)
 
 ####################################################
-# 11 Add treatment info to filtered TPM data frame #
+# 12 Add treatment info to filtered TPM data frame #
 ####################################################
 
 # Create new column
@@ -458,13 +480,13 @@ TPM_filt_all$treatment %<>%
 levels(TPM_filt_all$treatment)
 
 #######################
-# 12 Save .RData file #
+# 13 Save .RData file #
 #######################
 
 save.image(file = "Globin-RNA-seqAnalysis.RData")
 
 #########################
-# 13 Get R session info #
+# 14 Get R session info #
 #########################
 
 devtools::session_info()
