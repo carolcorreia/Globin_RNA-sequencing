@@ -7,7 +7,7 @@
 # DOI badge: 
 # Author: Correia, C.N.
 # Version 1.0.0
-# Last updated on: 10/08/2017
+# Last updated on: 16/08/2017
 
 ################################
 # Download and files check sum #
@@ -245,22 +245,23 @@ rm -rf $HOME/scratch/PPDbRNAseqTimeCourse/quality_check/post-filtering/tmp
 ### Moved trimmed reads to Rodeo.
 ### Following steps were conducted in Ubuntu 14.04
 
-##############################################
-# Download reference transcriptome from UCSC #
-##############################################
+#####################################################
+# Download reference transcriptome from NCBI RefSeq #
+#####################################################
 
-# Dec. 2009 (UMD_3.1.1/bosTau8) assembly of the cow genome
-# (bosTau8, University of Maryland Bos_taurus_UMD_3.1.1).
-# http://hgdownload.soe.ucsc.edu/goldenPath/bosTau8/bigZips/
+# ASSEMBLY NAME: Bos_taurus_UMD_3.1.1
+# ASSEMBLY ACCESSION: GCF_000003055.6
 
 # Create and enter working directory:
-mkdir -p /home/workspace/ccorreia/globin/UCSC/transcriptomes/cattle/source_file
+mkdir -p /home/workspace/ccorreia/globin/RefSeq/transcriptomes/cattle/source_file
 cd !$
 
 # Download and unzip the transcriptome:
-nohup wget http://hgdownload.soe.ucsc.edu/goldenPath/bosTau8/bigZips/refMrna.fa.gz &
-gunzip refMrna.fa.gz
-mv refMrna.fa bta_refMrna.fa
+nohup wget ftp://ftp.ncbi.nih.gov/genomes/Bos_taurus/RNA/rna.fa.gz &
+gunzip rna.fa.gz
+
+# Correct transcript IDs by removing the extra characters 'gi||' and 'ref||':
+sed -e 's/gi|.*|ref|//' -e 's/|//' rna.fa > bta_refMrna.fa
 
 ##############################################
 # Build the transcriptome index using Salmon #
@@ -270,11 +271,11 @@ mv refMrna.fa bta_refMrna.fa
 http://salmon.readthedocs.io/en/latest/
 
 # Enter working directory:
-cd /home/workspace/ccorreia/globin/UCSC/transcriptomes/cattle
+cd /home/workspace/ccorreia/globin/RefSeq/transcriptomes/cattle
 
 # Build an index for quasi-mapping:
 nohup salmon index -t \
-/home/workspace/ccorreia/globin/UCSC/transcriptomes/cattle/source_file/bta_refMrna.fa \
+/home/workspace/ccorreia/globin/RefSeq/transcriptomes/cattle/source_file/bta_refMrna.fa \
 -i cattle_index --type quasi -k 31 -p 20 &
 
 #####################################
@@ -282,11 +283,11 @@ nohup salmon index -t \
 #####################################
 
 # Create and enter working directory:
-mkdir -p /home/workspace/ccorreia/globin/UCSC/salmon_quant/cattle
+mkdir -p /home/workspace/ccorreia/globin/RefSeq/salmon_quant/cattle
 cd !$
 
 # Quantify transcripts from one FASTQ file to check if it works well:
-salmon quant -i /home/workspace/ccorreia/globin/UCSC/transcriptomes/cattle/cattle_index \
+salmon quant -i /home/workspace/ccorreia/globin/RefSeq/transcriptomes/cattle/cattle_index \
 -l A --seqBias --gcBias \
 -1 \
 /home/workspace/ccorreia/globin/fastq_sequence/cattle/trimmed_A6511_W-1_F_R1_001.fastq.gz \
@@ -317,7 +318,7 @@ read4=`echo $file4 | perl -p -e 's/(R1_00.)/R2_004/'`; \
 read5=`echo $file5 | perl -p -e 's/(R1_00.)/R2_005/'`; \
 sample=`basename $file | perl -p -e 's/trimmed_(A\d\d\d\d_W\-1_F).*\.fastq\.gz/$1/'`; \
 echo "salmon quant -i \
-/home/workspace/ccorreia/globin/UCSC/transcriptomes/cattle/cattle_index \
+/home/workspace/ccorreia/globin/RefSeq/transcriptomes/cattle/cattle_index \
 -l A --seqBias --gcBias -1 $file $file2 $file3 $file4 $file5 \
 -2 $read1 $read2 $read3 $read4 $read5 \
 -p 15 -o ./$sample" \
@@ -329,7 +330,7 @@ chmod 755 quantify.sh
 nohup ./quantify.sh > quantify.sh.nohup &
 
 # Append sample name to all quant.sf files:
-for file in `find /home/workspace/ccorreia/globin/UCSC/salmon_quant/cattle \
+for file in `find /home/workspace/ccorreia/globin/RefSeq/salmon_quant/cattle \
 -name quant.sf`; \
 do oldname=`basename $file`; \
 newname=`dirname $file | perl -p -e 's/.+(A\d\d\d\d_W\-1_F)/$1/'`; \
@@ -338,20 +339,20 @@ mv $file $path/${newname}_$oldname; \
 done
 
 # Move all *quant.sf files to a temporary folder:
-mkdir /home/workspace/ccorreia/globin/UCSC/salmon_quant/cattle/cattle_TPM
-for file in `find /home/workspace/ccorreia/globin/UCSC/salmon_quant/cattle \
+mkdir /home/workspace/ccorreia/globin/RefSeq/salmon_quant/cattle/cattle_TPM
+for file in `find /home/workspace/ccorreia/globin/RefSeq/salmon_quant/cattle \
 -name A*quant.sf`; \
-do cp $file -t /home/workspace/ccorreia/globin/UCSC/salmon_quant/cattle/cattle_TPM; \
+do cp $file -t /home/workspace/ccorreia/globin/RefSeq/salmon_quant/cattle/cattle_TPM; \
 done
 
 # Transfer all files from Rodeo to laptop:
-scp -r ccorreia@servername:/home/workspace/ccorreia/globin/UCSC/salmon_quant/cattle/cattle_TPM .
+scp -r ccorreia@servername:/home/workspace/ccorreia/globin/RefSeq/salmon_quant/cattle/cattle_TPM .
 
 # Remove tmp folder from Rodeo:
 rm -r cattle_TPM
 
 # Append sample name to all log files:
-for file in `find /home/workspace/ccorreia/globin/UCSC/salmon_quant/cattle/ \
+for file in `find /home/workspace/ccorreia/globin/RefSeq/salmon_quant/cattle/ \
 -name salmon_quant.log`; \
 do oldname=`basename $file`; \
 newname=`dirname $file | perl -p -e 's/.+(A\d\d\d\d_W\-1_F).+/$1/'`; \
@@ -360,7 +361,7 @@ mv $file $path/${newname}_$oldname; \
 done
 
 # Gather salmon log information from all samples into one file:
-for file in `find /home/workspace/ccorreia/globin/UCSC/salmon_quant/cattle/ \
+for file in `find /home/workspace/ccorreia/globin/RefSeq/salmon_quant/cattle/ \
 -name A*salmon_quant.log`; \
 do echo echo \
 "\`basename $file\` \
@@ -368,23 +369,23 @@ do echo echo \
 \`grep 'total fragments' $file | awk '{print \$2}'\` \
 \`grep 'total reads' $file | awk '{print \$6}'\` \
 \`grep 'Mapping rate' $file | awk '{print \$8}'\` >> \
-UCSC_summary_cattle.txt" >> UCSC_summary_cattle.sh
+RefSeq_summary_cattle.txt" >> RefSeq_summary_cattle.sh
 done
 
-chmod 755 UCSC_summary_cattle.sh
-./UCSC_summary_cattle.sh
+chmod 755 RefSeq_summary_cattle.sh
+./RefSeq_summary_cattle.sh
 
 sed -i $'1 i\\\nFile_name Library_type Total_fragments Total_reads Mapping_rate(%)' \
-UCSC_summary_cattle.txt
+RefSeq_summary_cattle.txt
 
 # Transfer summary file from Rodeo to laptop:
-scp -r ccorreia@servername:/home/workspace/ccorreia/globin/UCSC/salmon_quant/cattle/UCSC_summary_cattle.txt .
+scp -r ccorreia@servername:/home/workspace/ccorreia/globin/RefSeq/salmon_quant/cattle/RefSeq_summary_cattle.txt .
 
 #######################################
 # Following steps were performed in R #
 #######################################
 
-# Please check this file sfor following steps: 01-GlobinRNA-seqAnalysis.R
+# Please check this file for next steps: 01-GlobinRNA-seqAnalysis.R
 
 
 
