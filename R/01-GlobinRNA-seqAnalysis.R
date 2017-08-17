@@ -253,11 +253,11 @@ pig_filt <- pig_nozeros[rowSums(pig_nozeros >= 1) >= 12, ]
 dim(pig_filt)
 dim(pig_nozeros)
 
-horse_filt <- horse_nozeros[rowSums(horse_nozeros >= 1) >= 37, ]
+horse_filt <- horse_nozeros[rowSums(horse_nozeros >= 1) >= 18, ]
 dim(horse_filt)
 dim(horse_nozeros)
 
-cattle_filt <- cattle_nozeros[rowSums(cattle_nozeros >= 1) >= 10, ]
+cattle_filt <- cattle_nozeros[rowSums(cattle_nozeros >= 1) >= 5, ]
 dim(cattle_filt)
 dim(cattle_nozeros)
 
