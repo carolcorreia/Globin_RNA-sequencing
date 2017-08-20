@@ -2,25 +2,28 @@
 # Tidy Salmon stats #
 #####################
 
+# HBA1, HBA2, and HBB transcripts RNA-seq Analysis
 # Author: Carolina N. Correia
-# Date: August 12th 2017
+# Date: August 20th 2017
 
 # Load packages
 library(plyr)
 library(tidyverse)
 library(magrittr)
 library(stringr)
-library(repurrrsive)
+library(devtools)
 
 # Set working directory
 setwd("/Users/ccorreia/Dropbox/CSF/Animal_Genomics/Globin/salmon/summary_quant")
 
 # Define variables for specific directories
 summDir <- getwd()
-tablesDir <- c("/Users/ccorreia/Dropbox/CSF/Animal_Genomics/Globin/tables")
+tablesDir <- "/Users/ccorreia/Dropbox/CSF/Animal_Genomics/Globin/tables"
+horseFile <- "/Users/ccorreia/Dropbox/CSF/Animal_Genomics/Globin/salmon/UCSC_summary_quant/UCSC_summary_horse.txt"
 
 # Create a vector with full paths to the salmon summary files
-summ_files <- list.files(summDir, full.names = TRUE)
+summ_files <- c(list.files(summDir, full.names = TRUE),
+                horseFile)
 
 # Import and row-bind all files into a tibble
 salmon_stats <- map_df(summ_files, ~ read_table2(.x))
@@ -128,6 +131,9 @@ salmon_stats$labels %<>%
     str_replace("SRR3671044", "Eca_S36_U") %>%
     str_replace("SRR3671045", "Eca_S37_U")
 
+
+# Check data frame
+View(salmon_stats)
 
 # Export renamed salmon stats
 write_csv(salmon_stats,
