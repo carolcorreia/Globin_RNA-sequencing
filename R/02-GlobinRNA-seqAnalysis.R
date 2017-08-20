@@ -447,42 +447,46 @@ globin_stats %>%
 # Check data frame
 mean_and_sd
 
-rm(globin_mean)
-rm(globin_sd)
-
-
+mean_and_sd %>% 
+dplyr::filter(treatment == "Undepleted") -> mean_and_sd_U
 #########################################################
-#  Sina plot #
+#  Jitter plot #
 #########################################################
 
 
 
-ggplot(TPM_globins) +
-    geom_sina(aes(gene_symbol, log2(TPM + 1),
+jitter_plot <- ggplot(TPM_globins) +
+    geom_jitter(aes(gene_symbol, log2(TPM + 1),
                     colour = treatment),
                 size = 3,
                 alpha = 0.7) +
     scale_colour_manual("Treatment",
                         values = c("#af8dc3", "#7fbf7b")) +
-    scale_y_continuous(limits = c(0, 20)) +
-    geom_point(aes(gene_symbol, log2(mean + 1),
+    geom_errorbar(data = mean_and_sd,
+                  aes(x = gene_symbol, ymin = log2(abs((mean + 1) - sd)),
+                      ymax= log2(abs((mean + 1) + sd))),
+                  colour = "#414545",
+                  width = 0.3) +
+    #scale_errorbar_manual(expression(paste(log[2], "(test)"))) +
+    geom_point(data = mean_and_sd, aes(gene_symbol, log2(mean + 1),
                   shape = treatment),
-               colour = "#808080",
-              size = 3,
-              data = mean_and_sd) +
-    scale_shape_manual(expression(paste("Mean ", log[2], "(TPM + 1)")),
+               colour = "black",
+              size = 3) +
+    scale_shape_manual(expression(paste(log[2], "(mean + 1)")),
                        values = c(17, 15)) +
-   # geom_errorbar(aes(x = sd,
-    #                  ymin = Sepal.Length.mean - Sepal.Length.sd,
-     #                 ymax= Sepal.Length.mean + Sepal.Length.sd), 
-     #data = mean_and_sd, width = 0.2, color = "red") +
     
     facet_grid(. ~ species, scales = "free_x") +
     theme_bw() +
     theme(axis.text.x = element_text(face = "italic")) +
     xlab(NULL) +
-    ylab(expression(paste(log[2], "(TPM + 1)")))
+    ylab(expression(paste(log[2], "(TPM + 1)"))) +
+    labs(title = "Globin genes", 
+     subtitle = "test", 
+     caption = expression(paste("Error bars represent the ",
+                                log[2], "(abs((mean + 1) ± SD))")))
 
+# Change title and subtitle
+jitter_plot
 
 
 ggsave(".svg",
