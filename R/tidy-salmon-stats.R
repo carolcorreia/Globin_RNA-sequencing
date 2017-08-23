@@ -1,6 +1,6 @@
-#####################
-# Tidy Salmon stats #
-#####################
+#######################################
+# Table 1 - Salmon mapping statistics #
+#######################################
 
 # HBA1, HBA2, and HBB transcripts RNA-seq Analysis
 # Author: Carolina N. Correia
@@ -11,6 +11,7 @@ library(plyr)
 library(tidyverse)
 library(magrittr)
 library(stringr)
+library(skimr)
 library(devtools)
 
 # Set working directory
@@ -28,6 +29,16 @@ summ_files <- c(list.files(summDir, full.names = TRUE),
 # Import and row-bind all files into a tibble
 salmon_stats <- map_df(summ_files, ~ read_table2(.x))
 View(salmon_stats)
+
+# Rename columns
+salmon_stats %<>% 
+    dplyr::rename(Observed_fragments = Total_fragments) %>% 
+    dplyr::rename(Mapped_fragments = Total_reads)
+
+# Remove % symbol and convert mapping rate to numeric
+salmon_stats$`Mapping_rate(%)` %<>%
+    str_replace("%", "") %>% 
+    as.numeric()
 
 # Rename library type
 salmon_stats$Library_type %<>% 
@@ -135,11 +146,186 @@ salmon_stats$labels %<>%
 # Check data frame
 View(salmon_stats)
 
-# Export renamed salmon stats
+# Convert labels into factors and order them
+salmon_stats$labels %<>%
+    factor(levels = c("Hsa_S01_U", "Hsa_S02_U", "Hsa_S03_U", "Hsa_S04_U",
+                      "Hsa_S05_U", "Hsa_S06_U", "Hsa_P19_U", "Hsa_P20_U",
+                      "Hsa_P21_U", "Hsa_P22_U", "Hsa_P23_U", "Hsa_P24_U",
+                      "Hsa_S01_D", "Hsa_S02_D", "Hsa_S03_D", "Hsa_S04_D",
+                      "Hsa_S05_D", "Hsa_S06_D", "Hsa_P07_D", "Hsa_P08_D",
+                      "Hsa_P09_D", "Hsa_P10_D", "Hsa_P11_D", "Hsa_P12_D",
+                      "Ssc_01_U", "Ssc_02_U", "Ssc_03_U", "Ssc_04_U",
+                      "Ssc_05_U", "Ssc_06_U", "Ssc_07_U", "Ssc_08_U",
+                      "Ssc_09_U", "Ssc_10_U", "Ssc_11_U", "Ssc_12_U",
+                      "Ssc_01_D", "Ssc_02_D", "Ssc_03_D", "Ssc_04_D",
+                      "Ssc_05_D", "Ssc_06_D", "Ssc_07_D", "Ssc_08_D",
+                      "Ssc_09_D", "Ssc_10_D", "Ssc_11_D", "Ssc_12_D",
+                      "Eca_T01_U", "Eca_T02_U", "Eca_T03_U", "Eca_T04_U",
+                      "Eca_T05_U", "Eca_T06_U", "Eca_T07_U", "Eca_T08_U",
+                      "Eca_T09_U", "Eca_T10_U", "Eca_T11_U", "Eca_T12_U",
+                      "Eca_S13_U", "Eca_T14_U", "Eca_T15_U", "Eca_T16_U",
+                      "Eca_T17_U", "Eca_T18_U", "Eca_T19_U", "Eca_T20_U",
+                      "Eca_T21_U", "Eca_T22_U", "Eca_T23_U", "Eca_T24_U",
+                      "Eca_T25_U", "Eca_T26_U", "Eca_T27_U", "Eca_T28_U",
+                      "Eca_T29_U", "Eca_T30_U", "Eca_T31_U", "Eca_T32_U",
+                      "Eca_S33_U", "Eca_S34_U", "Eca_S35_U", "Eca_S36_U",
+                      "Eca_S37_U", "Bta_01_U", "Bta_02_U", "Bta_03_U",
+                      "Bta_04_U", "Bta_05_U", "Bta_06_U", "Bta_07_U",
+                      "Bta_08_U", "Bta_09_U", "Bta_10_U"))
+
+# Check factor order
+levels(salmon_stats$labels)
+
+# Move labels column to the beginning and order rows by labels
+salmon_stats %<>% 
+    dplyr::select(labels, everything()) %>% 
+    dplyr::arrange(labels)
+
+# Add treatment column and move it
+salmon_stats$treatment <- salmon_stats$labels
+
+salmon_stats %<>% 
+    dplyr::select(labels, treatment, everything())
+
+salmon_stats$treatment %<>% 
+    stringr::str_replace("Bta_\\d\\d_", "") %>% 
+    stringr::str_replace("Eca_(T|S)\\d\\d_", "") %>% 
+    stringr::str_replace("Hsa_(S|P)\\d\\d_", "") %>% 
+    stringr::str_replace("Ssc_\\d\\d_", "") %>%
+    stringr::str_replace("U", "Undepleted") %>% 
+    stringr::str_replace("D", "Globin depleted")
+
+# Add species column
+salmon_stats$species <- salmon_stats$labels
+
+salmon_stats$species %<>% 
+    stringr::str_replace("Bta_\\d\\d_(U|D)", "Bovine") %>% 
+    stringr::str_replace("Eca_(T|S)\\d\\d_(U|D)", "Equine") %>% 
+    stringr::str_replace("Hsa_(S|P)\\d\\d_(U|D)", "Human") %>% 
+    stringr::str_replace("Ssc_\\d\\d_(U|D)", "Porcine")
+
+# Check data frame
+View(salmon_stats)
+
+# Export complete stats
 write_csv(salmon_stats,
           path = file.path(paste0(tablesDir, "/salmon_stats_tidy.csv")),
           col_names = TRUE)
 
+# Calculate summary stats
+vars_to_keep <- c("Mapping_rate(%)", "Observed_fragments", "Mapped_fragments")
+
+salmon_stats %>%
+    dplyr::filter(c(treatment == "Undepleted"
+                    & species == "Bovine")) %>%
+    skim() %>%
+    dplyr::filter(var %in% vars_to_keep) %>% 
+    dplyr::filter(stat == "mean") %>% 
+    dplyr::mutate(stat = paste(stat, level, sep = '_')) %>% 
+    dplyr::select(-c(type, level)) %>% 
+    dplyr::mutate(var = paste(var, stat, sep = '_')) %>% 
+    dplyr::select(-stat) %>% 
+    tidyr::spread(var, value) %>% 
+    dplyr::mutate(species = "Bovine") %>% 
+    dplyr::mutate(treatment = "Undepleted") %>% 
+    dplyr::mutate(library_type = "Inward stranded forward") -> salmon_summary
+    
+salmon_stats %>%
+    dplyr::filter(c(treatment == "Undepleted"
+                    & species == "Equine")) %>%
+    skim() %>%
+    dplyr::filter(var %in% vars_to_keep) %>% 
+    dplyr::filter(stat == "mean") %>% 
+    dplyr::mutate(stat = paste(stat, level, sep = '_')) %>% 
+    dplyr::select(-c(type, level)) %>% 
+    dplyr::mutate(var = paste(var, stat, sep = '_')) %>% 
+    dplyr::select(-stat) %>% 
+    tidyr::spread(var, value) %>% 
+    dplyr::mutate(species = "Equine") %>% 
+    dplyr::mutate(treatment = "Undepleted") %>% 
+    dplyr::mutate(library_type = "Unstranded") %>% 
+    dplyr::bind_rows(salmon_summary) -> salmon_summary
+
+salmon_stats %>%
+    dplyr::filter(c(treatment == "Globin depleted"
+                    & species == "Porcine")) %>%
+    skim() %>%
+    dplyr::filter(var %in% vars_to_keep) %>% 
+    dplyr::filter(stat == "mean") %>% 
+    dplyr::mutate(stat = paste(stat, level, sep = '_')) %>% 
+    dplyr::select(-c(type, level)) %>% 
+    dplyr::mutate(var = paste(var, stat, sep = '_')) %>% 
+    dplyr::select(-stat) %>% 
+    tidyr::spread(var, value) %>% 
+    dplyr::mutate(species = "Porcine") %>% 
+    dplyr::mutate(treatment = "Globin depleted") %>% 
+    dplyr::mutate(library_type = "Inward unstranded") %>% 
+    dplyr::bind_rows(salmon_summary) -> salmon_summary
+
+salmon_stats %>%
+    dplyr::filter(c(treatment == "Undepleted"
+                    & species == "Porcine")) %>%
+    skim() %>%
+    dplyr::filter(var %in% vars_to_keep) %>% 
+    dplyr::filter(stat == "mean") %>% 
+    dplyr::mutate(stat = paste(stat, level, sep = '_')) %>% 
+    dplyr::select(-c(type, level)) %>% 
+    dplyr::mutate(var = paste(var, stat, sep = '_')) %>% 
+    dplyr::select(-stat) %>% 
+    tidyr::spread(var, value) %>% 
+    dplyr::mutate(species = "Porcine") %>% 
+    dplyr::mutate(treatment = "Undepleted") %>% 
+    dplyr::mutate(library_type = "Inward unstranded") %>% 
+    dplyr::bind_rows(salmon_summary) -> salmon_summary
+
+salmon_stats %>%
+    dplyr::filter(c(treatment == "Globin depleted"
+                    & species == "Human")) %>%
+    skim() %>%
+    dplyr::filter(var %in% vars_to_keep) %>% 
+    dplyr::filter(stat == "mean") %>% 
+    dplyr::mutate(stat = paste(stat, level, sep = '_')) %>% 
+    dplyr::select(-c(type, level)) %>% 
+    dplyr::mutate(var = paste(var, stat, sep = '_')) %>% 
+    dplyr::select(-stat) %>% 
+    tidyr::spread(var, value) %>% 
+    dplyr::mutate(species = "Human") %>% 
+    dplyr::mutate(treatment = "Globin depleted") %>% 
+    dplyr::mutate(library_type = "Inward unstranded") %>% 
+    dplyr::bind_rows(salmon_summary) -> salmon_summary
+
+salmon_stats %>%
+    dplyr::filter(c(treatment == "Undepleted"
+                    & species == "Human")) %>%
+    skim() %>%
+    dplyr::filter(var %in% vars_to_keep) %>% 
+    dplyr::filter(stat == "mean") %>% 
+    dplyr::mutate(stat = paste(stat, level, sep = '_')) %>% 
+    dplyr::select(-c(type, level)) %>% 
+    dplyr::mutate(var = paste(var, stat, sep = '_')) %>% 
+    dplyr::select(-stat) %>% 
+    tidyr::spread(var, value) %>% 
+    dplyr::mutate(species = "Human") %>% 
+    dplyr::mutate(treatment = "Undepleted") %>% 
+    dplyr::mutate(library_type = "Inward unstranded") %>% 
+    dplyr::bind_rows(salmon_summary) -> salmon_summary
+
+# Reorder columns in summary data frame
+salmon_summary %<>% 
+    dplyr::rename(Observed_fragments_mean = Observed_fragments_mean_.all,
+                  Mapped_fragments_mean = Mapped_fragments_mean_.all,
+                  `Mapping_rate(%)_mean` = `Mapping_rate(%)_mean_.all`) %>%
+    dplyr::select(species, treatment,
+                  library_type, Observed_fragments_mean,
+                  everything())
+    
+# Check data frame
+View(salmon_summary)
+
+# Export summary stats
+write_csv(salmon_summary,
+          path = file.path(paste0(tablesDir, "/salmon_mean.csv")),
+          col_names = TRUE)
 
 # R session information
 devtools::session_info()
