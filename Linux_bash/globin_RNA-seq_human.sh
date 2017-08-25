@@ -7,7 +7,7 @@
 # DOI badge: 
 # Author: Correia, C.N.
 # Version 1.0.0
-# Last updated on: 16/08/2017
+# Last updated on: 25/08/2017
 
 #####################################
 # Download raw FASTQ files from ENA #
@@ -17,15 +17,15 @@
 mkdir $HOME/storage/globin/human_fastq
 cd !$
 
-# Get ftp links for FASTQ files from the European Nucleotide Archive (ENA)
+# Get FTP links for FASTQ files from the European Nucleotide Archive (ENA)
 # http://www.ebi.ac.uk/ena/data/view/PRJNA232593
 # Under the Read Files tab, click on select columns and make sure that the
-# only checke option is Fastq files (ftp). Then, on the download option 
+# only checked option is FASTQ files (FTP). Then, on the download option 
 # click on the TEXT link and download the PRJNA232593.txt file.
 # Transfer it to Stampede using WinSCP.
 # Using notepad++, remove the header on PRJNA232593.txt. Then, search ; and
 # replace with \n
-# Every ftp link should be in one line.
+# Every FTP link should be in one line.
 
 # Download human data set from ENA (PRJNA232593, Shin et al.2014):
 nohup wget -i PRJNA232593.txt &
@@ -99,7 +99,6 @@ done
 # Remove temporary folder and its files:
 rm -r $HOME/scratch/globin/quality_check/pre-filtering/human/tmp
 
-
 ##################################################################
 # Adapter-contamination and quality filtering of raw FASTQ files #
 ##################################################################
@@ -160,6 +159,20 @@ done
 chmod 755 discarded_compression.sh
 nohup ./discarded_compression.sh &
 
+# Gather ngsShoRT reports from all samples into one file:
+for file in `find $HOME/scratch/globin/fastq_sequence/human \
+-name final_PE_report.txt`; \
+do echo echo \
+"\`dirname $file | perl -p -e 's/.*(SRR\d.+)/\$1/'\` \
+\`grep 'Read Pair Count:' $file\` \
+\`grep 'Removed PE Pair\* Count:' $file\` >> \
+ngsshort_human.txt" >> ngsshort_summary_human.sh
+done
+
+chmod 755 ngsshort_summary_human.sh
+./ngsshort_summary_human.sh
+
+# Transfer ngsShoRT summary to laptop via SCP:
 
 ################################################
 # FastQC quality check of filtered FASTQ files #

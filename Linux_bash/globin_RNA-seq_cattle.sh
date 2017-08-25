@@ -7,7 +7,7 @@
 # DOI badge: 
 # Author: Correia, C.N.
 # Version 1.0.0
-# Last updated on: 16/08/2017
+# Last updated on: 25/08/2017
 
 ################################
 # Download and files check sum #
@@ -179,6 +179,21 @@ do
 chmod 755 $script
 nohup ./$script &
 done
+
+# Gather ngsShoRT reports from all samples into one file:
+for file in `find $HOME/scratch/PPDbRNAseqTimeCourse/fastq_sequence \
+-name final_PE_report.txt`; \
+do echo echo \
+"\`dirname $file | perl -pe 's/.*(A\d\d\d\d.*\d)/\$1/'\` \
+\`grep 'Read Pair Count:' $file\` \
+\`grep 'Removed PE Pair\* Count:' $file\` >> \
+ngsshort_cattle.txt" >> ngsshort_summary_cattle.sh
+done
+
+chmod 755 ngsshort_summary_cattle.sh
+./ngsshort_summary_cattle.sh
+
+# Transfer ngsShoRT summary to laptop via SCP:
 
 ################################################
 # FastQC quality check of filtered FASTQ files #

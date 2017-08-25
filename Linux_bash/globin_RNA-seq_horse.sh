@@ -7,7 +7,7 @@
 # DOI badge: 
 # Author: Correia, C.N.
 # Version 1.0.0
-# Last updated on: 10/08/2017
+# Last updated on: 25/08/2017
 
 #####################################
 # Download raw FASTQ files from ENA #
@@ -156,6 +156,20 @@ done
 chmod 755 discarded_compression.sh
 nohup ./discarded_compression.sh &
 
+# Gather ngsShoRT reports from all samples into one file:
+for file in `find /home/workspace/ccorreia/globin/fastq_sequence/horse \
+-name final_SE_report.txt`; \
+do echo echo \
+"\`dirname $file | perl -pe 's/.*(SRR.*\d)/\$1/'\` \
+\`grep '^Read Count:' $file\` \
+\`grep 'Removed Reads Count:' $file\` >> \
+ngsshort_horse.txt" >> ngsshort_summary_horse.sh
+done
+
+chmod 755 ngsshort_summary_horse.sh
+./ngsshort_summary_horse.sh
+
+# Transfer ngsShoRT summary to laptop via SCP.
 
 ################################################
 # FastQC quality check of filtered FASTQ files #

@@ -7,7 +7,7 @@
 # DOI badge: 
 # Author: Correia, C.N.
 # Version 1.0.0
-# Last updated on: 16/08/2017
+# Last updated on: 25/08/2017
 
 ############################
 # Download raw FASTQ files #
@@ -160,6 +160,20 @@ done
 chmod 755 discarded_compression.sh
 nohup ./discarded_compression.sh &
 
+# Gather ngsShoRT reports from all samples into one file:
+for file in `find $HOME/scratch/globin/fastq_sequence/pig \
+-name final_PE_report.txt`; \
+do echo echo \
+"\`dirname $file | perl -p -e 's/.*(7\d\d\d.+)/\$1/'\` \
+\`grep 'Read Pair Count:' $file\` \
+\`grep 'Removed PE Pair\* Count:' $file\` >> \
+ngsshort_pig.txt" >> ngsshort_summary_pig.sh
+done
+
+chmod 755 ngsshort_summary_pig.sh
+./ngsshort_summary_pig.sh
+
+# Transfer ngsShoRT summary to laptop via SCP:
 
 ###############################################
 # FastQC quality check of trimmed FASTQ files #
