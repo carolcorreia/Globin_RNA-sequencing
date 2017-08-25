@@ -193,7 +193,11 @@ done
 chmod 755 ngsshort_summary_cattle.sh
 ./ngsshort_summary_cattle.sh
 
-# Transfer ngsShoRT summary to laptop via SCP:
+# Add header to facilitate wrangling in R later on:
+sed -i $'1 i\\\nSample_name X1 X2 X3 Read_pair_count X4 X5 X6 X7 Removed_PE_pair_count Percent_removed' \
+ngsshort_cattle.txt
+
+# Transfer ngsShoRT summary to laptop via SCP.
 
 ################################################
 # FastQC quality check of filtered FASTQ files #

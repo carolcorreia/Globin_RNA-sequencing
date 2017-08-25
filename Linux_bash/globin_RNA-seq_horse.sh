@@ -169,6 +169,10 @@ done
 chmod 755 ngsshort_summary_horse.sh
 ./ngsshort_summary_horse.sh
 
+# Add header to facilitate wrangling in R later on:
+sed -i $'1 i\\\nSample_name X1 X2 Read_count X3 X4 X5 Removed_reads_count Percent_removed' \
+ngsshort_horse.txt
+
 # Transfer ngsShoRT summary to laptop via SCP.
 
 ################################################
