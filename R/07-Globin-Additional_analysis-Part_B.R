@@ -1,0 +1,286 @@
+######################################
+# Globin-derived transcripts RNA-seq #
+#   Additional Analysis - Part B     #
+######################################
+
+# Author: Carolina N. Correia
+# GitHub Repository DOI: 
+# Date: August 29th 2017
+
+##################################
+# 13 Working directory and RData #
+##################################
+
+# Set working directory
+setwd("/Users/ccorreia/Dropbox/CSF/Animal_Genomics/Globin/R")
+
+# Load previously saved data
+load("Globin-Additional_analysis.RData")
+
+# Define variables for specific directories
+imgDir <- "/Users/ccorreia/Dropbox/CSF/Animal_Genomics/Globin/Figures"
+tablesDir <- "/Users/ccorreia/Dropbox/CSF/Animal_Genomics/Globin/tables"
+
+############################################
+# 16 Load and/or install required packages #
+############################################
+
+# Load packages
+library(plyr)
+library(tidyverse)
+library(devtools)
+library(magrittr)
+library(stringr)
+library(forcats)
+library(ggjoy)
+library(skimr)
+
+# Uncomment functions below to install packages in case you don't have them
+
+#install.packages("plyr")
+#install.packages("tidyverse")
+#install.packages("ggjoy")
+#library(devtools)
+#devtools::install_github("hadley/colformat")
+#devtools::install_github("ropenscilabs/skimr")
+
+#######################################
+# 17 Summary statistics per treatment #
+#######################################
+
+# Calculate summary stats
+horse_filt %>%
+    skim() -> horse_stats
+
+
+# Visualise stats
+skim_print(horse_stats)
+
+# Export stats
+write_csv(horse_stats,
+          file.path(paste0(tablesDir, "/", "horse_extra_stats.csv")),
+          col_names = TRUE)
+
+#########################################################
+# 18 Plot: density of filtered gene counts per library #
+#########################################################
+
+# Joyplot of density gene-level TPM after filtering
+horse_filt %>% 
+    mutate(reverse_labels = fct_rev(labels)) %>% 
+    ggplot(aes(x = log10(TPM + 1),
+               y = reverse_labels)) +
+        geom_joy(aes(fill = treatment), alpha = 0.5) +
+        scale_fill_manual("Treatment",
+                          values = c("#af8dc3", "#7fbf7b")) +
+        theme_bw() +
+        ylab("Density of gene-level TPM \nestimates per sample") +
+        xlab(expression(paste(log[10], "(TPM + 1)"))) -> joy_density
+
+# Standard density plot of gene-level TPM after filtering
+density_plot <- ggplot(horse_filt) +
+                geom_density(aes(log10(TPM + 1),
+                                 group = labels,
+                                 colour = treatment),
+                             alpha = 0.5, show.legend = FALSE) +
+                stat_density(aes(x = log10(TPM + 1),
+                                 colour = treatment),
+                             geom = "line", position = "identity") +
+                scale_colour_manual("Treatment",
+                                    values = c("#af8dc3", "#7fbf7b")) +
+                guides(colour = guide_legend(override.aes = list(size = 3))) +
+                theme_bw() +
+                ylab("Density of gene-level TPM \nestimates per sample") +
+                xlab(expression(paste(log[10], "(TPM + 1)")))
+
+# Export high quality image for joy plot in PNG
+ggsave("horse-extra-joy_density.png",
+       joy_density,
+       path      = imgDir,
+       device    = "png",
+       height    = 20,
+       width     = 20,
+       units     = "in",
+       limitsize = FALSE,
+       dpi       = 600)
+
+# Export high quality image for joy plot in SVG
+ggsave("horse-extra-joy_density.svg",
+       joy_density,
+       path      = imgDir,
+       device    = "svg",
+       height    = 20,
+       width     = 20,
+       units     = "in",
+       limitsize = FALSE,
+       dpi       = 600)
+
+# Export high quality image for joy plot in PDF
+ggsave("horse-extra-joy_density.pdf",
+       joy_density,
+       path      = imgDir,
+       device    = "pdf",
+       height    = 20,
+       width     = 20,
+       units     = "in",
+       limitsize = FALSE,
+       dpi       = 600)
+
+######################
+# 19 Subset HBB gene #
+######################
+
+horse_filt %>% 
+    dplyr::filter(Gene_RefSeqID %in%
+                      c("HBA", "HBA1", "HBA2", "HBB")) -> TPM_globins
+
+# Check IDs
+unique(TPM_globins$Gene_RefSeqID)
+
+# Add gene symbols column for plotting
+TPM_globins$gene_symbol <- TPM_globins$Gene_RefSeqID
+
+TPM_globins$gene_symbol %<>% 
+    factor()
+
+# Check data frame
+View(TPM_globins)
+
+###########################
+# 20 Summary stats of HBB #
+###########################
+
+TPM_globins %>%
+    skim() %>%
+    dplyr::select(c(var, stat, value)) %>% 
+    dplyr::filter(c(var == "TPM" & stat != "hist")) %>% 
+    dplyr::mutate(species = "Equine") %>% 
+    dplyr::mutate(gene_symbol = "HBB") %>% 
+    dplyr::mutate(treatment = "Undepleted") %>% 
+    as.tibble() -> globin_stats
+
+# Check summary stats data frame
+View(globin_stats)
+
+#######################################
+# 21 Tidy HBB summary and export data #
+#######################################
+
+globin_stats %>% 
+    dplyr::filter(stat == "mean") %>% 
+    tidyr::spread(stat, value) -> globin_tidy
+
+globin_stats %>% 
+    dplyr::filter(stat == "median") %>% 
+    tidyr::spread(stat, value) %>% 
+    dplyr::right_join(globin_tidy) -> globin_tidy
+
+globin_stats %>% 
+    dplyr::filter(stat == "sd") %>% 
+    tidyr::spread(stat, value) %>% 
+    dplyr::right_join(globin_tidy) -> globin_tidy
+
+globin_stats %>% 
+    dplyr::filter(stat == "n") %>% 
+    tidyr::spread(stat, value) %>% 
+    dplyr::right_join(globin_tidy) -> globin_tidy
+
+globin_stats %>% 
+    dplyr::filter(stat == "min") %>% 
+    tidyr::spread(stat, value) %>% 
+    dplyr::right_join(globin_tidy) -> globin_tidy
+
+globin_stats %>% 
+    dplyr::filter(stat == "max") %>% 
+    tidyr::spread(stat, value) %>% 
+    dplyr::right_join(globin_tidy) -> globin_tidy
+
+# Check data frame
+globin_tidy
+
+# Export tidy globin summary stats
+write_csv(globin_tidy,
+          file.path(paste0(tablesDir, "/horse-extra-globin-stats.csv")),
+          col_names = TRUE)
+
+##################################################
+# 22 Plot: Distribution of globin gene-level TPM #
+##################################################
+
+jitter_plot <- ggplot(TPM_globins) +
+    geom_jitter(aes(gene_symbol, log2(TPM + 1),
+                    colour = treatment),
+                size = 3,
+                alpha = 0.7) +
+    scale_colour_manual("Treatment",
+                        values = c("#af8dc3", "#7fbf7b")) +
+    geom_errorbar(data = globin_tidy,
+                  aes(x = gene_symbol, ymin = log2(abs((mean + 1) - sd)),
+                      ymax= log2(abs((mean + 1) + sd))),
+                  colour = "#414545",
+                  width = 0.3) +
+    geom_point(data = globin_tidy, aes(gene_symbol, log2(mean + 1),
+                  shape = treatment),
+               colour = "black",
+              size = 3) +
+    scale_shape_manual(expression(paste(log[2], "(mean + 1)")),
+                       values = c(17, 15)) +
+    theme_bw() +
+    theme(axis.text.x = element_text(face = "italic",
+                                     angle = 45,
+                                     hjust = 1)) +
+    xlab(NULL) +
+    ylab(expression(paste(log[2], "(TPM + 1)"))) +
+    labs(caption = expression(paste("Error bars represent the ",
+                                    log[2], "(abs((mean + 1) ± SD))")))
+
+# Check plot
+jitter_plot
+
+# Export high quality image for joy plot in PNG
+ggsave("horse-extra-jitter.png",
+       jitter_plot,
+       path      = imgDir,
+       device    = "png",
+       height    = 20,
+       width     = 20,
+       units     = "in",
+       limitsize = FALSE,
+       dpi       = 600)
+
+# Export high quality image for joy plot in SVG
+ggsave("horse-extra-jitter.svg",
+       jitter_plot,
+       path      = imgDir,
+       device    = "svg",
+       height    = 20,
+       width     = 20,
+       units     = "in",
+       limitsize = FALSE,
+       dpi       = 600)
+
+# Export high quality image for joy plot in PDF
+ggsave("horse-extra-jitter.pdf",
+       jitter_plot,
+       path      = imgDir,
+       device    = "pdf",
+       height    = 20,
+       width     = 20,
+       units     = "in",
+       limitsize = FALSE,
+       dpi       = 600)
+
+#######################
+#  Save .RData file #
+#######################
+
+save.image(file = "Globin-Additional_analysis.RData")
+
+#########################
+#  Get R session info #
+#########################
+
+devtools::session_info()
+
+
+

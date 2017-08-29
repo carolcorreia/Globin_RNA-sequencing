@@ -1,6 +1,11 @@
-# HBA1, HBA2, and HBB transcripts RNA-seq Analysis - Part 2
-# Author: Carolina C. Correia
-# Date: August 17th 2017
+######################################
+# Globin-derived transcripts RNA-seq #
+#       Main Analysis - Part B       #
+######################################
+
+# Author: Carolina N. Correia
+# GitHub Repository DOI: 
+# Date: August 29th 2017
 
 ##################################
 # 15 Working directory and RData #
@@ -10,7 +15,7 @@
 setwd("/Users/ccorreia/Dropbox/CSF/Animal_Genomics/Globin/R")
 
 # Load previously saved data
-load("Globin-RNA-seqAnalysis.RData")
+load("Globin-Main_analysis.RData")
 
 # Define variables for specific directories
 imgDir <- "/Users/ccorreia/Dropbox/CSF/Animal_Genomics/Globin/Figures"
@@ -28,7 +33,6 @@ library(magrittr)
 library(stringr)
 library(forcats)
 library(ggjoy)
-library(ggforce)
 library(waffle)
 library(skimr)
 
@@ -37,7 +41,6 @@ library(skimr)
 #install.packages("plyr")
 #install.packages("tidyverse")
 #install.packages("ggjoy")
-#install.packages("ggforce")
 #library(devtools)
 #devtools::install_github("hrbrmstr/waffle")
 #devtools::install_github("hadley/colformat")
@@ -99,7 +102,7 @@ purrr::pwalk(list(vars_summary, path_summ),
              col_names = TRUE)
 
 #########################################################
-# 18 Plots: density of filtered gene counts per library #
+# 18 Plot: density of filtered gene counts per library #
 #########################################################
 
 # Joyplot of density gene-level TPM after filtering
@@ -156,14 +159,23 @@ purrr::pwalk(list(svg_den, vars_den),
              limitsize = FALSE,
              dpi       = 600)
 
+# PDF
+pdf_den <- paste0(c("joy_density", "density_plot"), ".pdf")
+purrr::pwalk(list(pdf_den, vars_den),
+             ggsave,
+             path      = imgDir,
+             device    = "pdf",
+             limitsize = FALSE,
+             dpi       = 600)
+
 ##########################
 # 19 Subset globin genes #
 ##########################
 
 TPM_filt_all %>% 
     dplyr::filter(Gene_RefSeqID %in%
-                      c("HBA","HBA1", "HBA2",
-                        "HBB", "LOC100737768",
+                      c("HBA", "HBA1", "HBA2", "HBB",
+                        "LOC100737768", "LOC110259958",
                         "100036557", "100036558",
                         "100054109")) -> TPM_globins
 
@@ -174,11 +186,12 @@ unique(TPM_globins$Gene_RefSeqID)
 TPM_globins$gene_symbol <- TPM_globins$Gene_RefSeqID
 
 TPM_globins$gene_symbol %<>% 
-    str_replace("LOC100737768","HBA1") %>%
     str_replace("100036557","HBA1") %>% 
     str_replace("100036558","HBA2") %>% 
     str_replace("100054109","HBB") %>%
     str_replace("HBA$","HBA2") %>% 
+    str_replace("LOC100737768","LOC100737768 (HBA)") %>%
+    str_replace("LOC110259958","LOC110259958 (HBA)") %>%
     factor()
 
 # Check factors
@@ -279,16 +292,29 @@ TPM_globins %>%
     dplyr::mutate(treatment = "Undepleted") %>% 
     dplyr::bind_rows(globin_stats) -> globin_stats
 
-# Pig Undepleted HBA1
+# Pig Undepleted LOC100737768 (HBA)
 TPM_globins %>%
     dplyr::filter(c(treatment == "Undepleted"
                     & species == "Porcine"
-                    & gene_symbol == "HBA1")) %>%
+                    & gene_symbol == "LOC100737768 (HBA)")) %>%
     skim() %>%
     dplyr::select(c(var, stat, value)) %>% 
     dplyr::filter(c(var == "TPM" & stat != "hist")) %>% 
     dplyr::mutate(species = "Porcine") %>% 
-    dplyr::mutate(gene_symbol = "HBA1") %>% 
+    dplyr::mutate(gene_symbol = "LOC100737768 (HBA)") %>% 
+    dplyr::mutate(treatment = "Undepleted") %>% 
+    dplyr::bind_rows(globin_stats) -> globin_stats
+
+# Pig Undepleted LOC110259958 (HBA)
+TPM_globins %>%
+    dplyr::filter(c(treatment == "Undepleted"
+                    & species == "Porcine"
+                    & gene_symbol == "LOC110259958 (HBA)")) %>%
+    skim() %>%
+    dplyr::select(c(var, stat, value)) %>% 
+    dplyr::filter(c(var == "TPM" & stat != "hist")) %>% 
+    dplyr::mutate(species = "Porcine") %>% 
+    dplyr::mutate(gene_symbol = "LOC110259958 (HBA)") %>% 
     dplyr::mutate(treatment = "Undepleted") %>% 
     dplyr::bind_rows(globin_stats) -> globin_stats
 
@@ -305,16 +331,29 @@ TPM_globins %>%
     dplyr::mutate(treatment = "Globin depleted") %>% 
     dplyr::bind_rows(globin_stats) -> globin_stats
 
-# Pig Globin depleted HBA1
+# Pig Globin depleted LOC100737768 (HBA)
 TPM_globins %>%
     dplyr::filter(c(treatment == "Globin depleted"
                     & species == "Porcine"
-                    & gene_symbol == "HBA1")) %>%
+                    & gene_symbol == "LOC100737768 (HBA)")) %>%
     skim() %>%
     dplyr::select(c(var, stat, value)) %>% 
     dplyr::filter(c(var == "TPM" & stat != "hist")) %>% 
     dplyr::mutate(species = "Porcine") %>% 
-    dplyr::mutate(gene_symbol = "HBA1") %>% 
+    dplyr::mutate(gene_symbol = "LOC100737768 (HBA)") %>% 
+    dplyr::mutate(treatment = "Globin depleted") %>% 
+    dplyr::bind_rows(globin_stats) -> globin_stats
+
+# Pig Globin depleted LOC110259958 (HBA)
+TPM_globins %>%
+    dplyr::filter(c(treatment == "Globin depleted"
+                    & species == "Porcine"
+                    & gene_symbol == "LOC110259958 (HBA)")) %>%
+    skim() %>%
+    dplyr::select(c(var, stat, value)) %>% 
+    dplyr::filter(c(var == "TPM" & stat != "hist")) %>% 
+    dplyr::mutate(species = "Porcine") %>% 
+    dplyr::mutate(gene_symbol = "LOC110259958 (HBA)") %>% 
     dplyr::mutate(treatment = "Globin depleted") %>% 
     dplyr::bind_rows(globin_stats) -> globin_stats
 
@@ -399,9 +438,9 @@ TPM_globins %>%
 # Check summary stats data frame
 View(globin_stats)
 
-#########################################################
-# 21 Correct factors in globin summary stats data frame #
-#########################################################
+#####################################
+# 21 Correct globin summary factors #
+#####################################
 
 # Species
 globin_stats$species %<>% 
@@ -415,7 +454,8 @@ levels(globin_stats$species)
 # Gene symbol
 globin_stats$gene_symbol %<>% 
     factor() %>%
-    forcats::fct_inorder()
+    forcats::fct_inorder() %>% 
+    forcats::fct_relevel("HBB", after = Inf)
 
 # Check gene symbol factors
 levels(globin_stats$gene_symbol)
@@ -429,31 +469,50 @@ globin_stats$treatment %<>%
 # Check species factors
 levels(globin_stats$treatment)
 
-# Export
-
-#################################################################
-# 22 Spread mean and standard deviation of globins for plotting #
-#################################################################
+###########################################
+# 22 Tidy globins summary and export data #
+###########################################
 
 globin_stats %>% 
     dplyr::filter(stat == "mean") %>% 
-    tidyr::spread(stat, value) -> mean_and_sd
+    tidyr::spread(stat, value) -> globin_tidy
+
+globin_stats %>% 
+    dplyr::filter(stat == "median") %>% 
+    tidyr::spread(stat, value) %>% 
+    dplyr::right_join(globin_tidy) -> globin_tidy
 
 globin_stats %>% 
     dplyr::filter(stat == "sd") %>% 
     tidyr::spread(stat, value) %>% 
-    dplyr::right_join(mean_and_sd) -> mean_and_sd
+    dplyr::right_join(globin_tidy) -> globin_tidy
+
+globin_stats %>% 
+    dplyr::filter(stat == "n") %>% 
+    tidyr::spread(stat, value) %>% 
+    dplyr::right_join(globin_tidy) -> globin_tidy
+
+globin_stats %>% 
+    dplyr::filter(stat == "min") %>% 
+    tidyr::spread(stat, value) %>% 
+    dplyr::right_join(globin_tidy) -> globin_tidy
+
+globin_stats %>% 
+    dplyr::filter(stat == "max") %>% 
+    tidyr::spread(stat, value) %>% 
+    dplyr::right_join(globin_tidy) -> globin_tidy
 
 # Check data frame
-mean_and_sd
+globin_tidy
 
-mean_and_sd %>% 
-dplyr::filter(treatment == "Undepleted") -> mean_and_sd_U
-#########################################################
-#  Jitter plot #
-#########################################################
+# Export tidy globin summary stats
+write_csv(globin_tidy,
+          file.path(paste0(tablesDir, "/globin-stats.csv")),
+          col_names = TRUE)
 
-
+##################################################
+# 23 Plot: Distribution of globin gene-level TPM #
+##################################################
 
 jitter_plot <- ggplot(TPM_globins) +
     geom_jitter(aes(gene_symbol, log2(TPM + 1),
@@ -462,13 +521,12 @@ jitter_plot <- ggplot(TPM_globins) +
                 alpha = 0.7) +
     scale_colour_manual("Treatment",
                         values = c("#af8dc3", "#7fbf7b")) +
-    geom_errorbar(data = mean_and_sd,
+    geom_errorbar(data = globin_tidy,
                   aes(x = gene_symbol, ymin = log2(abs((mean + 1) - sd)),
                       ymax= log2(abs((mean + 1) + sd))),
                   colour = "#414545",
                   width = 0.3) +
-    #scale_errorbar_manual(expression(paste(log[2], "(test)"))) +
-    geom_point(data = mean_and_sd, aes(gene_symbol, log2(mean + 1),
+    geom_point(data = globin_tidy, aes(gene_symbol, log2(mean + 1),
                   shape = treatment),
                colour = "black",
               size = 3) +
@@ -477,30 +535,47 @@ jitter_plot <- ggplot(TPM_globins) +
     
     facet_grid(. ~ species, scales = "free_x") +
     theme_bw() +
-    theme(axis.text.x = element_text(face = "italic")) +
+    theme(axis.text.x = element_text(face = "italic",
+                                     angle = 45,
+                                     hjust = 1)) +
     xlab(NULL) +
     ylab(expression(paste(log[2], "(TPM + 1)"))) +
-    labs(title = "Globin genes", 
-     subtitle = "test", 
-     caption = expression(paste("Error bars represent the ",
-                                log[2], "(abs((mean + 1) ± SD))")))
+    labs(caption = expression(paste("Error bars represent the ",
+                                    log[2], "(abs((mean + 1) ± SD))")))
 
-# Change title and subtitle
+# Check plot
 jitter_plot
 
+# Export high quality image in PNG, and SVG
+files_jitter <- c("jitter_plot.png", "jitter_plot.svg")
+mult_jitter <- list(jitter_plot, jitter_plot)
+devs_jitter <- c("png", "svg")
 
-ggsave(".svg",
-       plot      = plot,
+purrr::pwalk(list(files_jitter, mult_jitter, devs_jitter),
+             ggsave,
+             path      = imgDir,
+             limitsize = FALSE,
+             dpi       = 600,
+             height    = 10,
+             width     = 15,
+             units     = "in")
+
+# Export high quality image in PDF
+ggsave("jitter_plot.pdf",
+       jitter_plot,
+       device = "pdf",
+       path = imgDir,
        limitsize = FALSE,
-       dpi       = 300,
-       path      = img_dir)
-
+       dpi       = 600,
+       height    = 10,
+       width     = 15,
+       units     = "in")
 
 #######################
 #  Save .RData file #
 #######################
 
-save.image(file = "Globin-RNA-seqAnalysis.RData")
+save.image(file = "Globin-Main_analysis.RData")
 
 #########################
 #  Get R session info #

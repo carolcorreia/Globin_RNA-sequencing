@@ -1,10 +1,11 @@
-####################################################
-# Horse extra analysis - Salmon mapping statistics #
-####################################################
+#####################################################
+#    Globin-derived transcripts RNA-seq Analysis    #
+# Salmon mapping statistics for additional analysis #
+#####################################################
 
-# HBA1, HBA2, and HBB transcripts RNA-seq Analysis
 # Author: Carolina N. Correia
-# Date: August 24th 2017
+# GitHub Repository DOI: 
+# Date: August 29th 2017
 
 # Load packages
 library(plyr)

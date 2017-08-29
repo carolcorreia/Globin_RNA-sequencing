@@ -1,6 +1,11 @@
-# HBA1, HBA2, and HBB transcripts RNA-seq Analysis - Part 1
-# Author: Carolina C. Correia
-# Date: August 16th 2017
+######################################
+# Globin-derived transcripts RNA-seq #
+#       Main Analysis - Part A       #
+######################################
+
+# Author: Carolina N. Correia
+# GitHub Repository DOI: 
+# Date: August 29th 2017
 
 ##################################
 # 01 Working directory and RData #
@@ -22,7 +27,7 @@ pigGFF <- file.path(paste0(gffDir, "/ref_Sscrofa11.1_top_level.gff3"))
 cattleGFF <- file.path(paste0(gffDir, "/ref_Bos_taurus_UMD_3.1.1_top_level.gff3")) 
     
 # Load previously saved data
-load("Globin-RNA-seqAnalysis.RData")
+load("Globin-Main_analysis.RData")
 
 ############################################
 # 02 Load and/or install required packages #
@@ -49,8 +54,6 @@ library(reshape2)
 #biocLite("rtracklayer", type = "source")
 #biocLite("tximport")
 #biocLite("GenomicFeatures", type = "source")
-#biocLite("TxDb.Btaurus.UCSC.bosTau8.refGene")
-#biocLite("TxDb.Sscrofa.UCSC.susScr3.refGene")
 
 
 # CRAN packages
@@ -244,7 +247,7 @@ cattle_nozeros <- cattle_TPM[rowSums(cattle_TPM) > 0, ]
 dim(cattle_nozeros)
 dim(cattle_TPM)
 
-# Remove lowly expressed genes (< 1 TPM in one treatment group)
+# Remove lowly expressed genes (< 1 TPM in approximately half of total samples)
 human_filt <- human_nozeros[rowSums(human_nozeros >= 1) >= 12, ]
 dim(human_filt)
 dim(human_nozeros)
@@ -483,7 +486,7 @@ levels(TPM_filt_all$treatment)
 # 13 Save .RData file #
 #######################
 
-save.image(file = "Globin-RNA-seqAnalysis.RData")
+save.image(file = "Globin-Main_analysis.RData")
 
 #########################
 # 14 Get R session info #
@@ -492,10 +495,10 @@ save.image(file = "Globin-RNA-seqAnalysis.RData")
 devtools::session_info()
 
 ######################################
-# Proceed to Part 2 of this analysis #
+# Proceed to Part B of main analysis #
 ######################################
 
-# File: 02-GlobinRNA-seqAnalysis.R
+# File: 05-Globin-Main_analysis-Part_B.R
 
 
 
