@@ -5,7 +5,7 @@
 
 # Author: Carolina N. Correia
 # GitHub Repository DOI: 
-# Date: August 29th 2017
+# Date: August 31st 2017
 
 ##################################
 # 15 Working directory and RData #
@@ -33,7 +33,6 @@ library(magrittr)
 library(stringr)
 library(forcats)
 library(ggjoy)
-library(waffle)
 library(skimr)
 
 # Uncomment functions below to install packages in case you don't have them
@@ -42,7 +41,6 @@ library(skimr)
 #install.packages("tidyverse")
 #install.packages("ggjoy")
 #library(devtools)
-#devtools::install_github("hrbrmstr/waffle")
 #devtools::install_github("hadley/colformat")
 #devtools::install_github("ropenscilabs/skimr")
 
@@ -101,9 +99,9 @@ purrr::pwalk(list(vars_summary, path_summ),
              write_csv,
              col_names = TRUE)
 
-#########################################################
+########################################################
 # 18 Plot: density of filtered gene counts per library #
-#########################################################
+########################################################
 
 # Joyplot of density gene-level TPM after filtering
 TPM_filt_all %>% 
@@ -571,14 +569,100 @@ ggsave("jitter_plot.pdf",
        width     = 15,
        units     = "in")
 
+############################################
+# 24 Proportion of globin genes per sample #
+############################################
+
+# Get total TPM per sample
+TPM_filt_all %>% 
+    dplyr::group_by(labels) %>% 
+    dplyr::summarise(Total_TPM_all_genes = sum(TPM)) -> globin_proportion
+
+# Get total globins TPMs per sample
+TPM_globins %>% 
+    dplyr::group_by(labels) %>% 
+    dplyr::summarise(Total_TPM_globins = sum(TPM)) %>% 
+    dplyr::right_join(globin_proportion) -> globin_proportion
+
+# Order columns and calculate proportion (%)
+globin_proportion %<>% 
+    dplyr::select(labels, Total_TPM_all_genes, Total_TPM_globins) %>% 
+    dplyr::mutate(Percent_globins =
+                      Total_TPM_globins / Total_TPM_all_genes * 100)
+
+# Check data frame
+View(globin_proportion)
+
+# Add treatment column and move it
+globin_proportion$treatment <- globin_proportion$labels
+
+globin_proportion %<>% 
+    dplyr::select(labels, treatment, everything())
+
+globin_proportion$treatment %<>% 
+    stringr::str_replace("Bta_\\d\\d_", "") %>% 
+    stringr::str_replace("Eca_(T|S)\\d\\d_", "") %>% 
+    stringr::str_replace("Hsa_(S|P)\\d\\d_", "") %>% 
+    stringr::str_replace("Ssc_\\d\\d_", "") %>%
+    stringr::str_replace("U", "Undepleted") %>% 
+    stringr::str_replace("D", "Globin depleted")
+
+# Add species column
+globin_proportion$species <- globin_proportion$labels
+
+globin_proportion$species %<>% 
+    stringr::str_replace("Bta_\\d\\d_(U|D)", "Bovine") %>% 
+    stringr::str_replace("Eca_(T|S)\\d\\d_(U|D)", "Equine") %>% 
+    stringr::str_replace("Hsa_(S|P)\\d\\d_(U|D)", "Human") %>% 
+    stringr::str_replace("Ssc_\\d\\d_(U|D)", "Porcine")
+
+# Export data
+write_csv(globin_proportion,
+          file.path(paste0(tablesDir, "/globin-proportion.csv")),
+          col_names = TRUE)
+
+################################################
+# 25 Proportion of globin genes: summary stats #
+################################################
+
+globin_proportion %>% 
+    dplyr::filter(species == "Human"
+                  & treatment == "Undepleted") %>% 
+    skim()
+
+globin_proportion %>% 
+    dplyr::filter(species == "Human"
+                  & treatment == "Globin depleted") %>% 
+    skim()
+
+globin_proportion %>% 
+    dplyr::filter(species == "Porcine"
+                  & treatment == "Undepleted") %>% 
+    skim()
+
+globin_proportion %>% 
+    dplyr::filter(species == "Porcine"
+                  & treatment == "Globin depleted") %>% 
+    skim()
+
+globin_proportion %>% 
+    dplyr::filter(species == "Equine"
+                  & treatment == "Undepleted") %>% 
+    skim()
+
+globin_proportion %>% 
+    dplyr::filter(species == "Bovine"
+                  & treatment == "Undepleted") %>% 
+    skim()
+
 #######################
-#  Save .RData file #
+# 26 Save .RData file #
 #######################
 
 save.image(file = "Globin-Main_analysis.RData")
 
 #########################
-#  Get R session info #
+# 27 Get R session info #
 #########################
 
 devtools::session_info()

@@ -5,7 +5,7 @@
 
 # Author: Carolina N. Correia
 # GitHub Repository DOI: 
-# Date: August 29th 2017
+# Date: August 31st 2017
 
 ##################################
 # 13 Working directory and RData #
@@ -22,7 +22,7 @@ imgDir <- "/Users/ccorreia/Dropbox/CSF/Animal_Genomics/Globin/Figures"
 tablesDir <- "/Users/ccorreia/Dropbox/CSF/Animal_Genomics/Globin/tables"
 
 ############################################
-# 16 Load and/or install required packages #
+# 14 Load and/or install required packages #
 ############################################
 
 # Load packages
@@ -45,7 +45,7 @@ library(skimr)
 #devtools::install_github("ropenscilabs/skimr")
 
 #######################################
-# 17 Summary statistics per treatment #
+# 15 Summary statistics per treatment #
 #######################################
 
 # Calculate summary stats
@@ -62,7 +62,7 @@ write_csv(horse_stats,
           col_names = TRUE)
 
 #########################################################
-# 18 Plot: density of filtered gene counts per library #
+# 16 Plot: density of filtered gene counts per library #
 #########################################################
 
 # Joyplot of density gene-level TPM after filtering
@@ -127,7 +127,7 @@ ggsave("horse-extra-joy_density.pdf",
        dpi       = 600)
 
 ######################
-# 19 Subset HBB gene #
+# 17 Subset HBB gene #
 ######################
 
 horse_filt %>% 
@@ -147,7 +147,7 @@ TPM_globins$gene_symbol %<>%
 View(TPM_globins)
 
 ###########################
-# 20 Summary stats of HBB #
+# 18 Summary stats of HBB #
 ###########################
 
 TPM_globins %>%
@@ -163,7 +163,7 @@ TPM_globins %>%
 View(globin_stats)
 
 #######################################
-# 21 Tidy HBB summary and export data #
+# 19 Tidy HBB summary and export data #
 #######################################
 
 globin_stats %>% 
@@ -203,9 +203,9 @@ write_csv(globin_tidy,
           file.path(paste0(tablesDir, "/horse-extra-globin-stats.csv")),
           col_names = TRUE)
 
-##################################################
-# 22 Plot: Distribution of globin gene-level TPM #
-##################################################
+###############################################
+# 20 Plot: Distribution of HBB gene-level TPM #
+###############################################
 
 jitter_plot <- ggplot(TPM_globins) +
     geom_jitter(aes(gene_symbol, log2(TPM + 1),
@@ -270,14 +270,53 @@ ggsave("horse-extra-jitter.pdf",
        limitsize = FALSE,
        dpi       = 600)
 
+###################################
+# 21 Proportion of HBB per sample #
+###################################
+
+# Get total TPM per sample
+horse_filt %>% 
+    dplyr::group_by(labels) %>% 
+    dplyr::summarise(Total_TPM_all_genes = sum(TPM)) -> globin_proportion
+
+# Get total globins TPMs per sample
+TPM_globins %>% 
+    dplyr::group_by(labels) %>% 
+    dplyr::summarise(Total_TPM_globins = sum(TPM)) %>% 
+    dplyr::right_join(globin_proportion) -> globin_proportion
+
+# Order columns and calculate proportion (%)
+globin_proportion %<>% 
+    dplyr::select(labels, Total_TPM_all_genes, Total_TPM_globins) %>% 
+    dplyr::mutate(Percent_globins =
+                      Total_TPM_globins / Total_TPM_all_genes * 100)
+
+# Check data frame
+View(globin_proportion)
+
+# Export data
+write_csv(globin_proportion,
+          file.path(paste0(tablesDir, "/horse-extra-HBB-prop.csv")),
+          col_names = TRUE)
+
+#######################################
+# 22 Proportion of HBB: summary stats #
+#######################################
+
+globin_proportion %>% 
+    skim() -> globin_summary
+
+# Chech data frame
+skim_print(globin_summary)
+
 #######################
-#  Save .RData file #
+# 23 Save .RData file #
 #######################
 
 save.image(file = "Globin-Additional_analysis.RData")
 
 #########################
-#  Get R session info #
+# 24 Get R session info #
 #########################
 
 devtools::session_info()
