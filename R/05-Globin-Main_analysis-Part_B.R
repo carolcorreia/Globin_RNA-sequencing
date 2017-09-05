@@ -5,7 +5,7 @@
 
 # Author: Carolina N. Correia
 # GitHub Repository DOI: 
-# Date: August 31st 2017
+# Date: September 5th 2017
 
 ##################################
 # 15 Working directory and RData #
@@ -33,6 +33,7 @@ library(magrittr)
 library(stringr)
 library(forcats)
 library(ggjoy)
+library(Cairo)
 library(skimr)
 
 # Uncomment functions below to install packages in case you don't have them
@@ -40,6 +41,7 @@ library(skimr)
 #install.packages("plyr")
 #install.packages("tidyverse")
 #install.packages("ggjoy")
+#install.packages("Cairo")
 #library(devtools)
 #devtools::install_github("hadley/colformat")
 #devtools::install_github("ropenscilabs/skimr")
@@ -111,60 +113,22 @@ TPM_filt_all %>%
         geom_joy(aes(fill = treatment), alpha = 0.5) +
         scale_fill_manual("Treatment",
                           values = c("#af8dc3", "#7fbf7b")) +
-        theme_bw() +
+        theme_bw(base_size = 10) +
         facet_wrap(~species, ncol = 2, scales = "free_y") +
         ylab("Density of gene-level TPM \nestimates per sample") +
         xlab(expression(paste(log[10], "(TPM + 1)"))) -> joy_density
 
-# Standard density plot of gene-level TPM after filtering
-density_plot <- ggplot(TPM_filt_all) +
-                geom_density(aes(log10(TPM + 1),
-                                 group = labels,
-                                 colour = treatment),
-                             alpha = 0.5, show.legend = FALSE) +
-                stat_density(aes(x = log10(TPM + 1),
-                                 colour = treatment),
-                             geom = "line", position = "identity") +
-                scale_colour_manual("Treatment",
-                                    values = c("#af8dc3", "#7fbf7b")) +
-                guides(colour = guide_legend(override.aes = list(size = 3))) +
-                facet_grid(. ~ species) +
-                theme_bw() +
-                ylab("Density of gene-level TPM \nestimates per sample") +
-                xlab(expression(paste(log[10], "(TPM + 1)")))
 
-# Export high quality image for both plots
-vars_den <- list(joy_density, density_plot)
-
-# PNG
-png_den <- paste0(c("joy_density", "density_plot"), ".png")
-purrr::pwalk(list(png_den, vars_den),
-             ggsave,
-             path      = imgDir,
-             device    = "png",
-             height    = 30,
-             width     = 30,
-             units     = "cm",
-             limitsize = FALSE,
-             dpi       = 600)
-
-# SVG
-svg_den <- paste0(c("joy_density", "density_plot"), ".svg")
-purrr::pwalk(list(svg_den, vars_den),
-             ggsave,
-             path      = imgDir,
-             device    = "svg",
-             limitsize = FALSE,
-             dpi       = 600)
-
-# PDF
-pdf_den <- paste0(c("joy_density", "density_plot"), ".pdf")
-purrr::pwalk(list(pdf_den, vars_den),
-             ggsave,
-             path      = imgDir,
-             device    = "pdf",
-             limitsize = FALSE,
-             dpi       = 600)
+# Export high quality PDF
+ggsave("joy_density.pdf",
+       joy_density,
+       device    = cairo_pdf,
+       path      = imgDir,
+       limitsize = FALSE,
+       dpi       = 300,
+       height    = 10,
+       width     = 9,
+       units     = "in")
 
 ##########################
 # 19 Subset globin genes #
@@ -532,7 +496,7 @@ jitter_plot <- ggplot(TPM_globins) +
                        values = c(17, 15)) +
     
     facet_grid(. ~ species, scales = "free_x") +
-    theme_bw() +
+    theme_bw(base_size = 10) +
     theme(axis.text.x = element_text(face = "italic",
                                      angle = 45,
                                      hjust = 1)) +
@@ -544,29 +508,15 @@ jitter_plot <- ggplot(TPM_globins) +
 # Check plot
 jitter_plot
 
-# Export high quality image in PNG, and SVG
-files_jitter <- c("jitter_plot.png", "jitter_plot.svg")
-mult_jitter <- list(jitter_plot, jitter_plot)
-devs_jitter <- c("png", "svg")
-
-purrr::pwalk(list(files_jitter, mult_jitter, devs_jitter),
-             ggsave,
-             path      = imgDir,
-             limitsize = FALSE,
-             dpi       = 600,
-             height    = 10,
-             width     = 15,
-             units     = "in")
-
-# Export high quality image in PDF
+# Export high quality PDF
 ggsave("jitter_plot.pdf",
        jitter_plot,
-       device = "pdf",
-       path = imgDir,
+       device    = cairo_pdf,
+       path      = imgDir,
        limitsize = FALSE,
-       dpi       = 600,
-       height    = 10,
-       width     = 15,
+       dpi       = 300,
+       height    = 7,
+       width     = 10,
        units     = "in")
 
 ############################################

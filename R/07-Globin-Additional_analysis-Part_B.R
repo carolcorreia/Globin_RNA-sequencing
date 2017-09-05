@@ -5,7 +5,7 @@
 
 # Author: Carolina N. Correia
 # GitHub Repository DOI: 
-# Date: August 31st 2017
+# Date: September 5th 2017
 
 ##################################
 # 13 Working directory and RData #
@@ -33,6 +33,7 @@ library(magrittr)
 library(stringr)
 library(forcats)
 library(ggjoy)
+library(Cairo)
 library(skimr)
 
 # Uncomment functions below to install packages in case you don't have them
@@ -40,6 +41,7 @@ library(skimr)
 #install.packages("plyr")
 #install.packages("tidyverse")
 #install.packages("ggjoy")
+#install.packages("Cairo")
 #library(devtools)
 #devtools::install_github("hadley/colformat")
 #devtools::install_github("ropenscilabs/skimr")
@@ -73,58 +75,20 @@ horse_filt %>%
         geom_joy(aes(fill = treatment), alpha = 0.5) +
         scale_fill_manual("Treatment",
                           values = c("#af8dc3", "#7fbf7b")) +
-        theme_bw() +
+        theme_bw(base_size = 10) +
         ylab("Density of gene-level TPM \nestimates per sample") +
         xlab(expression(paste(log[10], "(TPM + 1)"))) -> joy_density
 
-# Standard density plot of gene-level TPM after filtering
-density_plot <- ggplot(horse_filt) +
-                geom_density(aes(log10(TPM + 1),
-                                 group = labels,
-                                 colour = treatment),
-                             alpha = 0.5, show.legend = FALSE) +
-                stat_density(aes(x = log10(TPM + 1),
-                                 colour = treatment),
-                             geom = "line", position = "identity") +
-                scale_colour_manual("Treatment",
-                                    values = c("#af8dc3", "#7fbf7b")) +
-                guides(colour = guide_legend(override.aes = list(size = 3))) +
-                theme_bw() +
-                ylab("Density of gene-level TPM \nestimates per sample") +
-                xlab(expression(paste(log[10], "(TPM + 1)")))
-
-# Export high quality image for joy plot in PNG
-ggsave("horse-extra-joy_density.png",
+# Export high quality PDF
+ggsave("horse-extra-joy-density.pdf",
        joy_density,
+       device    = cairo_pdf,
        path      = imgDir,
-       device    = "png",
-       height    = 20,
-       width     = 20,
-       units     = "in",
        limitsize = FALSE,
-       dpi       = 600)
-
-# Export high quality image for joy plot in SVG
-ggsave("horse-extra-joy_density.svg",
-       joy_density,
-       path      = imgDir,
-       device    = "svg",
-       height    = 20,
-       width     = 20,
-       units     = "in",
-       limitsize = FALSE,
-       dpi       = 600)
-
-# Export high quality image for joy plot in PDF
-ggsave("horse-extra-joy_density.pdf",
-       joy_density,
-       path      = imgDir,
-       device    = "pdf",
-       height    = 20,
-       width     = 20,
-       units     = "in",
-       limitsize = FALSE,
-       dpi       = 600)
+       dpi       = 300,
+       height    = 5,
+       width     = 4,
+       units     = "in")
 
 ######################
 # 17 Subset HBB gene #
@@ -225,7 +189,7 @@ jitter_plot <- ggplot(TPM_globins) +
               size = 3) +
     scale_shape_manual(expression(paste(log[2], "(mean + 1)")),
                        values = c(17, 15)) +
-    theme_bw() +
+    theme_bw(base_size = 10) +
     theme(axis.text.x = element_text(face = "italic",
                                      angle = 45,
                                      hjust = 1)) +
@@ -237,38 +201,16 @@ jitter_plot <- ggplot(TPM_globins) +
 # Check plot
 jitter_plot
 
-# Export high quality image for joy plot in PNG
-ggsave("horse-extra-jitter.png",
-       jitter_plot,
-       path      = imgDir,
-       device    = "png",
-       height    = 20,
-       width     = 20,
-       units     = "in",
-       limitsize = FALSE,
-       dpi       = 600)
-
-# Export high quality image for joy plot in SVG
-ggsave("horse-extra-jitter.svg",
-       jitter_plot,
-       path      = imgDir,
-       device    = "svg",
-       height    = 20,
-       width     = 20,
-       units     = "in",
-       limitsize = FALSE,
-       dpi       = 600)
-
-# Export high quality image for joy plot in PDF
+# Export high quality PDF
 ggsave("horse-extra-jitter.pdf",
        jitter_plot,
+       device    = cairo_pdf,
        path      = imgDir,
-       device    = "pdf",
-       height    = 20,
-       width     = 20,
-       units     = "in",
        limitsize = FALSE,
-       dpi       = 600)
+       dpi       = 300,
+       height    = 4,
+       width     = 4,
+       units     = "in")
 
 ###################################
 # 21 Proportion of HBB per sample #
