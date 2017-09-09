@@ -6,7 +6,7 @@ Session info -------------------------------------------------------------------
  language (EN)                        
  collate  en_IE.UTF-8                 
  tz       Europe/London               
- date     2017-09-05                  
+ date     2017-09-09                  
 
 Packages ------------------------------------------------------------------------
  package              * version  date       source                             
@@ -97,4 +97,4 @@ Packages -----------------------------------------------------------------------
  XML                    3.98-1.7 2017-05-03 CRAN (R 3.4.0)                     
  xml2                   1.1.1    2017-01-24 CRAN (R 3.4.0)                     
  XVector                0.16.0   2017-04-25 Bioconductor                       
- zlibbioc               1.22.0   2017-04-25 Bioconductor 
+ zlibbioc               1.22.0   2017-04-25 Bioconductor  

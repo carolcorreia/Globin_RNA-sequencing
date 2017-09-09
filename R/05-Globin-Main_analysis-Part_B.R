@@ -5,7 +5,7 @@
 
 # Author: Carolina N. Correia
 # GitHub Repository DOI: 
-# Date: September 5th 2017
+# Date: September 9th 2017
 
 ##################################
 # 15 Working directory and RData #
@@ -114,10 +114,13 @@ TPM_filt_all %>%
         scale_fill_manual("Treatment",
                           values = c("#af8dc3", "#7fbf7b")) +
         theme_bw(base_size = 10) +
+        ggtitle("Main analysis") +
         facet_wrap(~species, ncol = 2, scales = "free_y") +
         ylab("Density of gene-level TPM \nestimates per sample") +
         xlab(expression(paste(log[10], "(TPM + 1)"))) -> joy_density
 
+# Check plot
+joy_density
 
 # Export high quality PDF
 ggsave("joy_density.pdf",
@@ -497,6 +500,7 @@ jitter_plot <- ggplot(TPM_globins) +
     
     facet_grid(. ~ species, scales = "free_x") +
     theme_bw(base_size = 10) +
+    ggtitle("Main analysis") +
     theme(axis.text.x = element_text(face = "italic",
                                      angle = 45,
                                      hjust = 1)) +
@@ -605,11 +609,15 @@ globin_proportion %>%
                   & treatment == "Undepleted") %>% 
     skim()
 
-#######################
-# 26 Save .RData file #
-#######################
+########################
+# 26 Save .RData files #
+########################
 
+# Entire environment
 save.image(file = "Globin-Main_analysis.RData")
+
+# Plots only
+save(jitter_plot, joy_density, file = "Plots-both-analysis.rda")
 
 #########################
 # 27 Get R session info #

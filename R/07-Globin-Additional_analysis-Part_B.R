@@ -5,7 +5,7 @@
 
 # Author: Carolina N. Correia
 # GitHub Repository DOI: 
-# Date: September 5th 2017
+# Date: September 9th 2017
 
 ##################################
 # 13 Working directory and RData #
@@ -76,12 +76,16 @@ horse_filt %>%
         scale_fill_manual("Treatment",
                           values = c("#af8dc3", "#7fbf7b")) +
         theme_bw(base_size = 10) +
+        ggtitle("Additional analysis") +
         ylab("Density of gene-level TPM \nestimates per sample") +
-        xlab(expression(paste(log[10], "(TPM + 1)"))) -> joy_density
+        xlab(expression(paste(log[10], "(TPM + 1)"))) -> joy_density2
+
+# Check plot
+joy_density2
 
 # Export high quality PDF
 ggsave("horse-extra-joy-density.pdf",
-       joy_density,
+       joy_density2,
        device    = cairo_pdf,
        path      = imgDir,
        limitsize = FALSE,
@@ -171,7 +175,7 @@ write_csv(globin_tidy,
 # 20 Plot: Distribution of HBB gene-level TPM #
 ###############################################
 
-jitter_plot <- ggplot(TPM_globins) +
+jitter_plot2 <- ggplot(TPM_globins) +
     geom_jitter(aes(gene_symbol, log2(TPM + 1),
                     colour = treatment),
                 size = 3,
@@ -190,6 +194,7 @@ jitter_plot <- ggplot(TPM_globins) +
     scale_shape_manual(expression(paste(log[2], "(mean + 1)")),
                        values = c(17, 15)) +
     theme_bw(base_size = 10) +
+    ggtitle("Additional analysis") +
     theme(axis.text.x = element_text(face = "italic",
                                      angle = 45,
                                      hjust = 1)) +
@@ -199,11 +204,11 @@ jitter_plot <- ggplot(TPM_globins) +
                                     log[2], "(abs((mean + 1) ± SD))")))
 
 # Check plot
-jitter_plot
+jitter_plot2
 
 # Export high quality PDF
 ggsave("horse-extra-jitter.pdf",
-       jitter_plot,
+       jitter_plot2,
        device    = cairo_pdf,
        path      = imgDir,
        limitsize = FALSE,
@@ -251,11 +256,15 @@ globin_proportion %>%
 # Chech data frame
 skim_print(globin_summary)
 
-#######################
-# 23 Save .RData file #
-#######################
+########################
+# 23 Save .RData files #
+########################
 
+# Entire environment
 save.image(file = "Globin-Additional_analysis.RData")
+
+# Only plots
+save(joy_density2, jitter_plot2, file = "Plots-both-analyses.rda")
 
 #########################
 # 24 Get R session info #
