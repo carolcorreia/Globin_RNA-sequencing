@@ -98,6 +98,12 @@ ggsave("horse-extra-joy-density.pdf",
 # 17 Subset HBB gene #
 ######################
 
+# HBB-like genes (just to check that it was discarded after filtering
+# by TPM, it's not used in this analysis)
+dplyr::filter(horse_nozeros, rownames(horse_nozeros) == "LOC100054161")
+# 0.29, 0.27, and 0.41 TPM in 3 samples. Zero in all others.
+
+# HBB gene
 horse_filt %>% 
     dplyr::filter(Gene_RefSeqID %in%
                       c("HBA", "HBA1", "HBA2", "HBB")) -> TPM_globins
