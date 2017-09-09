@@ -49,7 +49,7 @@ Fig2 <- plot_grid(jitter_plot,
 Fig2
 
 # Export high quality PDF
-ggsave("Figure_2-jitter.pdf",
+ggsave("Figure_2-density.pdf",
        Fig2,
        device    = cairo_pdf,
        path      = imgDir,
@@ -74,7 +74,7 @@ Fig4 <- plot_grid(joy_density,
 Fig4
 
 # Export high quality PDF
-ggsave("Figure_4-density.pdf",
+ggsave("Figure_4-jitter.pdf",
        Fig4,
        device    = cairo_pdf,
        path      = imgDir,
