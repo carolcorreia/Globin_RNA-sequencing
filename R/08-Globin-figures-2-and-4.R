@@ -4,7 +4,7 @@
 ######################################
 
 # Author: Carolina N. Correia
-# GitHub Repository DOI: 
+# GitHub Repository DOI:
 # Date: September 9th 2017
 
 ##################################
@@ -49,7 +49,7 @@ Fig2 <- plot_grid(jitter_plot,
 Fig2
 
 # Export high quality PDF
-ggsave("Figure_2-density.pdf",
+ggsave("Figure_2-jitter.pdf",
        Fig2,
        device    = cairo_pdf,
        path      = imgDir,
