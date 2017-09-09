@@ -15,7 +15,8 @@
 setwd("/Users/ccorreia/Dropbox/CSF/Animal_Genomics/Globin/R")
 
 # Load previously plots
-load("Plots-both-analyses.rda")
+load("Plots-main-analysis.rda")
+load("Plots-additional-analysis.rda")
 
 # Define figures directory
 imgDir <- "/Users/ccorreia/Dropbox/CSF/Animal_Genomics/Globin/Figures"
@@ -39,12 +40,12 @@ library(cowplot)
 ###############
 
 # Set grid
-Fig2 <- plot_grid(jitter_plot,
-                  jitter_plot2,
+Fig2 <- plot_grid(joy_density,
+                  joy_density2,
                   labels = c("A", "B"),
                   rel_heights = c(1, 0.8),
-                  rel_widths = c(2, 0.8))
-
+                  rel_widths = c(2, 1))
+    
 # Check plot
 Fig2
 
@@ -64,11 +65,11 @@ ggsave("Figure_2-density.pdf",
 ###############
 
 # Set grid
-Fig4 <- plot_grid(joy_density,
-                  joy_density2,
+Fig4 <- plot_grid(jitter_plot,
+                  jitter_plot2,
                   labels = c("A", "B"),
                   rel_heights = c(1, 0.8),
-                  rel_widths = c(2, 1))
+                  rel_widths = c(2, 0.8))
 
 # Check plot
 Fig4
@@ -84,14 +85,8 @@ ggsave("Figure_4-jitter.pdf",
        width     = 12,
        units     = "in")
 
-########################
-# 05 Save .RData files #
-########################
-
-save.image(file = "Plots-both-analyses.rda")
-
 #########################
-# 06 Get R session info #
+# 05 Get R session info #
 #########################
 
 devtools::session_info()

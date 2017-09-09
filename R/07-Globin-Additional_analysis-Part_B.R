@@ -46,8 +46,23 @@ library(skimr)
 #devtools::install_github("hadley/colformat")
 #devtools::install_github("ropenscilabs/skimr")
 
+###############################
+# 15 Keep genes with TPM >= 1 #
+###############################
+
+horse_filt %>% 
+    dplyr::group_by(labels) %>% 
+    dplyr::count(TPM >= 1) %>% 
+    dplyr::filter(`TPM >= 1` == TRUE) %>% 
+    write_csv(file.path(paste0(tablesDir, "/Horse-extraExpressed-genes.csv")),
+              col_names = TRUE)
+
+horse_filt %<>% 
+    dplyr::group_by(labels) %>% 
+    dplyr::filter(TPM >= 1)
+
 #######################################
-# 15 Summary statistics per treatment #
+# 16 Summary statistics per treatment #
 #######################################
 
 # Calculate summary stats
@@ -64,7 +79,7 @@ write_csv(horse_stats,
           col_names = TRUE)
 
 #########################################################
-# 16 Plot: density of filtered gene counts per library #
+# 17 Plot: density of filtered gene counts per library #
 #########################################################
 
 # Joyplot of density gene-level TPM after filtering
@@ -95,7 +110,7 @@ ggsave("horse-extra-joy-density.pdf",
        units     = "in")
 
 ######################
-# 17 Subset HBB gene #
+# 18 Subset HBB gene #
 ######################
 
 # HBB-like genes (just to check that it was discarded after filtering
@@ -121,7 +136,7 @@ TPM_globins$gene_symbol %<>%
 View(TPM_globins)
 
 ###########################
-# 18 Summary stats of HBB #
+# 19 Summary stats of HBB #
 ###########################
 
 TPM_globins %>%
@@ -137,7 +152,7 @@ TPM_globins %>%
 View(globin_stats)
 
 #######################################
-# 19 Tidy HBB summary and export data #
+# 20 Tidy HBB summary and export data #
 #######################################
 
 globin_stats %>% 
@@ -178,7 +193,7 @@ write_csv(globin_tidy,
           col_names = TRUE)
 
 ###############################################
-# 20 Plot: Distribution of HBB gene-level TPM #
+# 21 Plot: Distribution of HBB gene-level TPM #
 ###############################################
 
 jitter_plot2 <- ggplot(TPM_globins) +
@@ -224,7 +239,7 @@ ggsave("horse-extra-jitter.pdf",
        units     = "in")
 
 ###################################
-# 21 Proportion of HBB per sample #
+# 22 Proportion of HBB per sample #
 ###################################
 
 # Get total TPM per sample
@@ -253,7 +268,7 @@ write_csv(globin_proportion,
           col_names = TRUE)
 
 #######################################
-# 22 Proportion of HBB: summary stats #
+# 23 Proportion of HBB: summary stats #
 #######################################
 
 globin_proportion %>% 
@@ -263,20 +278,24 @@ globin_proportion %>%
 skim_print(globin_summary)
 
 ########################
-# 23 Save .RData files #
+# 24 Save .RData files #
 ########################
 
 # Entire environment
 save.image(file = "Globin-Additional_analysis.RData")
 
 # Only plots
-save(joy_density2, jitter_plot2, file = "Plots-both-analyses.rda")
+save(joy_density2, jitter_plot2, file = "Plots-additional-analysis.rda")
 
 #########################
-# 24 Get R session info #
+# 25 Get R session info #
 #########################
 
 devtools::session_info()
 
+############################################
+# Proceed to grid plotting Figures 2 and 4 #
+############################################
 
+# File: 08-Globin-figures-2-and-4.R
 

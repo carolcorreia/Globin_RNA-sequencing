@@ -46,8 +46,23 @@ library(skimr)
 #devtools::install_github("hadley/colformat")
 #devtools::install_github("ropenscilabs/skimr")
 
+###############################
+# 17 Keep genes with TPM >= 1 #
+###############################
+
+TPM_filt_all %>% 
+    dplyr::group_by(labels) %>% 
+    dplyr::count(TPM >= 1) %>% 
+    dplyr::filter(`TPM >= 1` == TRUE) %>% 
+    write_csv(file.path(paste0(tablesDir, "/Expressed-genes-sample.csv")),
+              col_names = TRUE)
+
+TPM_filt_all %<>% 
+    dplyr::group_by(labels) %>% 
+    dplyr::filter(TPM >= 1)
+
 ########################################################
-# 17 Summary statistics per treatment for each species #
+# 18 Summary statistics per treatment for each species #
 ########################################################
 
 # Calculate summary stats
@@ -102,7 +117,7 @@ purrr::pwalk(list(vars_summary, path_summ),
              col_names = TRUE)
 
 ########################################################
-# 18 Plot: density of filtered gene counts per library #
+# 19 Plot: density of filtered gene counts per library #
 ########################################################
 
 # Joyplot of density gene-level TPM after filtering
@@ -134,7 +149,7 @@ ggsave("joy_density.pdf",
        units     = "in")
 
 ##########################
-# 19 Subset globin genes #
+# 20 Subset globin genes #
 ##########################
 
 TPM_filt_all %>% 
@@ -164,7 +179,7 @@ levels(TPM_globins$gene_symbol)
 View(TPM_globins)
 
 ##################################################
-# 20 Summary stats of globin genes per treatment #
+# 21 Summary stats of globin genes per treatment #
 ##################################################
 
 # Cattle Undepleted HBB
@@ -404,7 +419,7 @@ TPM_globins %>%
 View(globin_stats)
 
 #####################################
-# 21 Correct globin summary factors #
+# 22 Correct globin summary factors #
 #####################################
 
 # Species
@@ -435,7 +450,7 @@ globin_stats$treatment %<>%
 levels(globin_stats$treatment)
 
 ###########################################
-# 22 Tidy globins summary and export data #
+# 23 Tidy globins summary and export data #
 ###########################################
 
 globin_stats %>% 
@@ -476,7 +491,7 @@ write_csv(globin_tidy,
           col_names = TRUE)
 
 ##################################################
-# 23 Plot: Distribution of globin gene-level TPM #
+# 24 Plot: Distribution of globin gene-level TPM #
 ##################################################
 
 jitter_plot <- ggplot(TPM_globins) +
@@ -524,7 +539,7 @@ ggsave("jitter_plot.pdf",
        units     = "in")
 
 ############################################
-# 24 Proportion of globin genes per sample #
+# 25 Proportion of globin genes per sample #
 ############################################
 
 # Get total TPM per sample
@@ -576,7 +591,7 @@ write_csv(globin_proportion,
           col_names = TRUE)
 
 ################################################
-# 25 Proportion of globin genes: summary stats #
+# 26 Proportion of globin genes: summary stats #
 ################################################
 
 globin_proportion %>% 
@@ -610,20 +625,26 @@ globin_proportion %>%
     skim()
 
 ########################
-# 26 Save .RData files #
+# 27 Save .RData files #
 ########################
 
 # Entire environment
 save.image(file = "Globin-Main_analysis.RData")
 
 # Plots only
-save(jitter_plot, joy_density, file = "Plots-both-analysis.rda")
+save(jitter_plot, joy_density, file = "Plots-main-analysis.rda")
 
 #########################
-# 27 Get R session info #
+# 28 Get R session info #
 #########################
 
 devtools::session_info()
+
+##################################
+# Proceed to Additional analysis #
+##################################
+
+# File: 06-Globin-Main_analysis-Part_A.R
 
 
 
