@@ -5,7 +5,7 @@
 
 # Author: Carolina N. Correia
 # GitHub Repository DOI: 
-# Date: September 9th 2017
+# Date: September 11th 2017
 
 ##################################
 # 13 Working directory and RData #
@@ -85,7 +85,7 @@ write_csv(horse_stats,
 # Joyplot of density gene-level TPM after filtering
 horse_filt %>% 
     mutate(reverse_labels = fct_rev(labels)) %>% 
-    ggplot(aes(x = log10(TPM + 1),
+    ggplot(aes(x = log10(TPM),
                y = reverse_labels)) +
         geom_joy(aes(fill = treatment), alpha = 0.5) +
         scale_fill_manual("Treatment",
@@ -93,7 +93,7 @@ horse_filt %>%
         theme_bw(base_size = 10) +
         ggtitle("Additional analysis") +
         ylab("Density of gene-level TPM \nestimates per sample") +
-        xlab(expression(paste(log[10], "(TPM + 1)"))) -> joy_density2
+        xlab(expression(paste(log[10], "TPM"))) -> joy_density2
 
 # Check plot
 joy_density2
@@ -197,22 +197,22 @@ write_csv(globin_tidy,
 ###############################################
 
 jitter_plot2 <- ggplot(TPM_globins) +
-    geom_jitter(aes(gene_symbol, log2(TPM + 1),
+    geom_jitter(aes(gene_symbol, log2(TPM),
                     colour = treatment),
                 size = 3,
                 alpha = 0.7) +
     scale_colour_manual("Treatment",
                         values = c("#af8dc3", "#7fbf7b")) +
     geom_errorbar(data = globin_tidy,
-                  aes(x = gene_symbol, ymin = log2(abs((mean + 1) - sd)),
-                      ymax= log2(abs((mean + 1) + sd))),
+                  aes(x = gene_symbol, ymin = log2(abs(mean - sd)),
+                      ymax= log2(abs(mean + sd))),
                   colour = "#414545",
                   width = 0.3) +
-    geom_point(data = globin_tidy, aes(gene_symbol, log2(mean + 1),
+    geom_point(data = globin_tidy, aes(gene_symbol, log2(mean),
                   shape = treatment),
                colour = "black",
               size = 3) +
-    scale_shape_manual(expression(paste(log[2], "(mean + 1)")),
+    scale_shape_manual(expression(paste(log[2], "mean")),
                        values = c(17, 15)) +
     theme_bw(base_size = 10) +
     ggtitle("Additional analysis") +
@@ -220,9 +220,9 @@ jitter_plot2 <- ggplot(TPM_globins) +
                                      angle = 45,
                                      hjust = 1)) +
     xlab(NULL) +
-    ylab(expression(paste(log[2], "(TPM + 1)"))) +
+    ylab(expression(paste(log[2], "TPM"))) +
     labs(caption = expression(paste("Error bars represent the ",
-                                    log[2], "(abs((mean + 1) ± SD))")))
+                                    log[2], "(abs(mean ± SD))")))
 
 # Check plot
 jitter_plot2
@@ -284,8 +284,11 @@ skim_print(globin_summary)
 # Entire environment
 save.image(file = "Globin-Additional_analysis.RData")
 
-# Only plots
-save(joy_density2, jitter_plot2, file = "Plots-additional-analysis.rda")
+# Selected variables
+save(joy_density2,
+     jitter_plot2,
+     horse_filt,
+     file = "Plots-additional-analysis.rda")
 
 #########################
 # 25 Get R session info #
@@ -297,5 +300,5 @@ devtools::session_info()
 # Proceed to grid plotting Figures 2 and 4 #
 ############################################
 
-# File: 08-Globin-figures-2-and-4.R
+# File: 08-Globin-figures.R
 
