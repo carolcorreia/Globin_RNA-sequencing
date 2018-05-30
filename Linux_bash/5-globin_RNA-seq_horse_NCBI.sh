@@ -30,6 +30,9 @@ sed -e 's/gi|.*|ref|//' -e 's/|//' rna.fa > eca_refMrna.fa
 # ASSEMBLY NAME: EquCab2.0
 # ASSEMBLY ACCESSION: GCF_000002305.2
 
+# From NCBI Equus caballus Annotation Release 102
+# https://www.ncbi.nlm.nih.gov/genome/annotation_euk/Equus_caballus/102/
+
 # Required software is Salmon 0.8.2, consult manual/tutorial for details:
 http://salmon.readthedocs.io/en/latest/
 

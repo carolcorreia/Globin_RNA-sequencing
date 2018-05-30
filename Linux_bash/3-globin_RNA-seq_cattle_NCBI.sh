@@ -271,6 +271,9 @@ rm -rf $HOME/scratch/PPDbRNAseqTimeCourse/quality_check/post-filtering/tmp
 # ASSEMBLY NAME: Bos_taurus_UMD_3.1.1
 # ASSEMBLY ACCESSION: GCF_000003055.6
 
+# From NCBI Bos taurus Annotation Release 105
+# https://www.ncbi.nlm.nih.gov/genome/annotation_euk/Bos_taurus/105/
+
 # Create and enter working directory:
 mkdir -p /home/workspace/ccorreia/globin/RefSeq/transcriptomes/cattle/source_file
 cd !$
