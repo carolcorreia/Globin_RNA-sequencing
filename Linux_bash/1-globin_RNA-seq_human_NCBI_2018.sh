@@ -1,13 +1,14 @@
 ##############################################################################
 #      RNA-seq analysis of reticulocyte-derived globin gene transcripts      #
 #             (HBA and HBB) in human peripheral blood samples                #
+#                        GRCh38.p12 - NCBI - 2018
 #                  --- Linux bioinformatics workflow ---                     #
 ##############################################################################
 
 # DOI badge: 
 # Author: Correia, C.N.
 # Version 1.0.0
-# Last updated on: 25/08/2017
+# Last updated on: 31/05/2018
 
 #####################################
 # Download raw FASTQ files from ENA #
@@ -299,11 +300,14 @@ python3 /home/workspace/ccorreia/scripts/rename_files.py fastq_names.txt
 # Download reference transcriptome from NCBI RefSeq #
 #####################################################
 
-# ASSEMBLY NAME: GRCh38.p7
-# ASSEMBLY ACCESSION: GCF_000001405.33
+# ASSEMBLY NAME: GRCh38.p12
+# ASSEMBLY ACCESSION: GCF_000001405.38
+
+# From NCBI Homo sapiens Annotation Release 109
+# https://www.ncbi.nlm.nih.gov/genome/annotation_euk/Homo_sapiens/109/
 
 # Create and enter working directory:
-mkdir -p /home/workspace/ccorreia/globin/RefSeq/transcriptomes/human/source_file
+mkdir -p /home/workspace/ccorreia/globin/RefSeq/transcriptomes/human_2018/source_file
 cd !$
 
 # Download and unzip the transcriptome:
@@ -311,7 +315,7 @@ nohup wget ftp://ftp.ncbi.nlm.nih.gov/genomes/Homo_sapiens/RNA/rna.fa.gz &
 gunzip rna.fa.gz
 
 # Correct transcript IDs by removing the extra characters 'gi||' and 'ref||':
-sed -e 's/gi|.*|ref|//' -e 's/|//' rna.fa > hsa_refMrna.fa
+sed -e 's/ref|//' -e 's/|//' rna.fa > hsa_refMrna.fa
 
 ##############################################
 # Build the transcriptome index using Salmon #
@@ -321,11 +325,11 @@ sed -e 's/gi|.*|ref|//' -e 's/|//' rna.fa > hsa_refMrna.fa
 http://salmon.readthedocs.io/en/latest/
 
 # Enter working directory:
-cd /home/workspace/ccorreia/globin/RefSeq/transcriptomes/human
+cd /home/workspace/ccorreia/globin/RefSeq/transcriptomes/human_2018
 
 # Build an index for quasi-mapping:
 nohup salmon index -t \
-/home/workspace/ccorreia/globin/RefSeq/transcriptomes/human/source_file/hsa_refMrna.fa \
+/home/workspace/ccorreia/globin/RefSeq/transcriptomes/human_2018/source_file/hsa_refMrna.fa \
 -i human_index --type quasi -k 31 -p 20 &
 
 #####################################
@@ -333,15 +337,17 @@ nohup salmon index -t \
 #####################################
 
 # Create and enter working directory:
-mkdir -p /home/workspace/ccorreia/globin/RefSeq/salmon_quant/human
+mkdir -p /home/workspace/ccorreia/globin/RefSeq/salmon_quant/human_2018
 cd !$
 
 # Quantify transcripts from one FASTQ file to check if it works well:
-salmon quant -i /home/workspace/ccorreia/globin/RefSeq/transcriptomes/human/human_index \
+salmon quant -i /home/workspace/ccorreia/globin/RefSeq/transcriptomes/human_2018/human_index \
 -l A --seqBias --gcBias \
 -1 /home/workspace/ccorreia/globin/fastq_sequence/human/renamed_fastq/GD_TRUE_Subj12_L1_1.fastq.gz \
 -2 /home/workspace/ccorreia/globin/fastq_sequence/human/renamed_fastq/GD_TRUE_Subj12_L1_2.fastq.gz \
 -p 15 -o ./GD_FALSE_Subj12
+
+# Do not delete the outputs of this test if they worked well.
 
 # Create a bash script to perform quantification of paired FASTQ files sequenced
 # over different lanes.
@@ -352,7 +358,7 @@ do read1=`echo $file | perl -p -e 's/_L1_1\.fastq\.gz/\_L1_2\.fastq\.gz/'`; \
 file2=`echo $file | perl -p -e 's/\_L1_1\.fastq\.gz/\_L4_1\.fastq\.gz/'`; \
 read2=`echo $file2 | perl -p -e 's/\_L4_1\.fastq\.gz/\_L4_2\.fastq\.gz/'`; \
 sample=`basename $file | perl -p -e 's/(.+_.+_Subj\d+)_L\d_\d\.fastq\.gz/$1/'`; \
-echo "salmon quant -i /home/workspace/ccorreia/globin/RefSeq/transcriptomes/human/human_index \
+echo "salmon quant -i /home/workspace/ccorreia/globin/RefSeq/transcriptomes/human_2018/human_index \
 -l A --seqBias --gcBias -1 $file $file2 -2 $read1 $read2 \
 -p 15 -o ./$sample" \
 >> quant.sh; \
@@ -370,7 +376,7 @@ do read1=`echo $file | perl -p -e 's/_L2_1\.fastq\.gz/\_L2_2\.fastq\.gz/'`; \
 file2=`echo $file | perl -p -e 's/\_L2_1\.fastq\.gz/\_L5_1\.fastq\.gz/'`; \
 read2=`echo $file2 | perl -p -e 's/\_L5_1\.fastq\.gz/\_L5_2\.fastq\.gz/'`; \
 sample=`basename $file | perl -p -e 's/(.+_.+_Subj\d+)_L\d_\d\.fastq\.gz/$1/'`; \
-echo "salmon quant -i /home/workspace/ccorreia/globin/RefSeq/transcriptomes/human/human_index \
+echo "salmon quant -i /home/workspace/ccorreia/globin/RefSeq/transcriptomes/human_2018/human_index \
 -l A --seqBias --gcBias -1 $file $file2 -2 $read1 $read2 \
 -p 15 -o ./$sample" \
 >> quantify.sh; \
@@ -385,7 +391,7 @@ nohup ./$script > ${script}.nohup &
 done
 
 # Append sample name to all quant.sf files to temporary folder:
-for file in `find /home/workspace/ccorreia/globin/RefSeq/salmon_quant/human \
+for file in `find /home/workspace/ccorreia/globin/RefSeq/salmon_quant/human_2018 \
 -name quant.sf`; \
 do oldname=`basename $file`; \
 newname=`dirname $file | perl -p -e 's/.+(GD|NGD_.+_Subj\d+)/$1/'`; \
@@ -394,20 +400,20 @@ mv $file $path/${newname}_$oldname; \
 done
 
 # Move all *quant.sf files to a temporary folder:
-mkdir /home/workspace/ccorreia/globin/RefSeq/salmon_quant/human/human_TPM
-for file in `find /home/workspace/ccorreia/globin/RefSeq/salmon_quant/human \
+mkdir /home/workspace/ccorreia/globin/RefSeq/salmon_quant/human_2018/human_TPM
+for file in `find /home/workspace/ccorreia/globin/RefSeq/salmon_quant/human_2018 \
 -name *_Subj*quant.sf`; \
-do cp $file -t /home/workspace/ccorreia/globin/RefSeq/salmon_quant/human/human_TPM; \
+do cp $file -t /home/workspace/ccorreia/globin/RefSeq/salmon_quant/human_2018/human_TPM; \
 done
 
 # Transfer all files from Rodeo to laptop:
-scp -r ccorreia@remoteserver:/home/workspace/ccorreia/globin/RefSeq/salmon_quant/human/human_TPM .
+scp -r ccorreia@remoteserver:/home/workspace/ccorreia/globin/RefSeq/salmon_quant/human_2018/human_TPM .
 
 # Remove tmp folder from Rodeo:
 rm -r human_TPM
 
 # Append sample name to all log files:
-for file in `find /home/workspace/ccorreia/globin/RefSeq/salmon_quant/human/ \
+for file in `find /home/workspace/ccorreia/globin/RefSeq/salmon_quant/human_2018/ \
 -name salmon_quant.log`; \
 do oldname=`basename $file`; \
 newname=`dirname $file | perl -p -e 's/.+(.+D_.+_Subj\d+).+/$1/'`; \
@@ -416,7 +422,7 @@ mv $file $path/${newname}_$oldname; \
 done
 
 # Gather salmon log information from all samples into one file:
-for file in `find /home/workspace/ccorreia/globin/RefSeq/salmon_quant/human/ \
+for file in `find /home/workspace/ccorreia/globin/RefSeq/salmon_quant/human_2018/ \
 -name *D_*salmon_quant.log`; \
 do echo echo \
 "\`basename $file\` \
@@ -424,22 +430,22 @@ do echo echo \
 \`grep 'total fragments' $file | awk '{print \$2}'\` \
 \`grep 'total reads' $file | awk '{print \$6}'\` \
 \`grep 'Mapping rate' $file | awk '{print \$8}'\` >> \
-RefSeq_summary_human.txt" >> RefSeq_summary_human.sh
+RefSeq_summary_human_2018.txt" >> RefSeq_summary_human.sh
 done
 
 chmod 755 RefSeq_summary_human.sh
 ./RefSeq_summary_human.sh
 
 sed -i $'1 i\\\nFile_name Library_type Total_fragments Total_reads Mapping_rate(%)' \
-RefSeq_summary_human.txt
+RefSeq_summary_human_2018.txt
 
 # Transfer summary file from Rodeo to laptop:
-scp ccorreia@remoteserver:/home/workspace/ccorreia/globin/RefSeq/salmon_quant/human/RefSeq_summary_human.txt .
+scp ccorreia@remoteserver:/home/workspace/ccorreia/globin/RefSeq/salmon_quant/human_2018/RefSeq_summary_human_2018.txt .
 
 #######################################
 # Following steps were performed in R #
 #######################################
 
-# Please check this file for next steps: 01-GlobinRNA-seqAnalysis.R
+# Please check this file for next steps: 11-Globin-Main_analysis-Part_C.R
 
 
