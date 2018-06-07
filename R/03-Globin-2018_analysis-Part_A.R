@@ -5,7 +5,7 @@
 
 # Author: Carolina N. Correia
 # GitHub Repository DOI:
-# Date: May 29th 2018
+# Date: May 31st 2018
 
 ##################################
 # 01 Working directory and RData #
@@ -16,10 +16,14 @@ setwd("/Users/ccorreia/Dropbox/CSF/Animal_Genomics/Globin/R")
 
 # Define variables for specific directories
 salmonDir <- "/Users/ccorreia/Dropbox/CSF/Animal_Genomics/Globin/salmon"
+humanDir <- file.path(paste0(salmonDir, "/TPM/human_2018_TPM"))
+pigDir <- file.path(paste0(salmonDir, "/TPM/pig_TPM"))
 horseDir <- file.path(paste0(salmonDir, "/TPM/horse_2018_TPM"))
 cattleDir <- file.path(paste0(salmonDir, "/TPM/cattle_2018_TPM"))
 
 gffDir <- file.path(paste0(getwd(), "/GFF3_RefSeq"))
+humanGFF <- file.path(paste0(gffDir, "/ref_GRCh38.p12_top_level.gff3"))
+pigGFF <- file.path(paste0(gffDir, "/ref_Sscrofa11.1_top_level.gff3"))
 horseGFF <- file.path(paste0(gffDir, "/ref_EquCab3.0_top_level.gff3"))
 cattleGFF <- file.path(paste0(gffDir, "/ref_ARS-UCD1.2_top_level.gff3"))
 
@@ -59,8 +63,21 @@ library(reshape2)
 
 ################################################################
 # 03 Create NCBI RefSeq TxDb objects for transcript annotation #
-#                      (horse and cow)                         #
 ################################################################
+
+# Human NCBI RefSeq .gff3 file used in this analysis
+# ftp://ftp.ncbi.nlm.nih.gov/genomes/Homo_sapiens/GFF/ref_GRCh38.p12_top_level.gff3.gz
+# ANNOTATION RELEASE NAME: NCBI Homo sapiens Annotation Release 109
+# ANNOTATION EVIDENCE FREEZE DATE: 13 February 2018
+# ANNOTATION RELEASE DATE: 26 March 2018
+# ANNOTATION REPORT: https://www.ncbi.nlm.nih.gov/genome/annotation_euk/Homo_sapiens/109/
+
+# Pig NCBI RefSeq .gff3 file used in this analysis
+# ftp://ftp.ncbi.nlm.nih.gov/genomes/Sus_scrofa/GFF/ref_Sscrofa11.1_top_level.gff3.gz
+# ANNOTATION RELEASE NAME: NCBI Sus scrofa Annotation Release 106
+# ANNOTATION EVIDENCE FREEZE DATE: 3 May 2017
+# ANNOTATION RELEASE DATE: 13 May 2017
+# ANNOTATION REPORT: https://www.ncbi.nlm.nih.gov/genome/annotation_euk/Sus_scrofa/106/
 
 # Cow NCBI RefSeq .gff3 file used in this analysis
 # ftp://ftp.ncbi.nlm.nih.gov/genomes/Bos_taurus/GFF/ref_ARS-UCD1.2_top_level.gff3.gz
@@ -77,10 +94,14 @@ library(reshape2)
 # ANNOTATION REPORT: https://www.ncbi.nlm.nih.gov/genome/annotation_euk/Equus_caballus/103/
 
 # Create DBs using .gff3 files
+humanDB <- makeTxDbFromGFF(humanGFF, format = "gff3")
+pigDB <- makeTxDbFromGFF(pigGFF, format = "gff3")
 horseDB <- makeTxDbFromGFF(horseGFF, format = "gff3")
 cattleDB <- makeTxDbFromGFF(cattleGFF, format = "gff3")
 
 # Check databases info
+humanDB
+pigDB
 horseDB
 cattleDB
 
@@ -89,14 +110,28 @@ cattleDB
 ################################################################
 
 # Check DB key type
+keytypes(humanDB)
+keytypes(pigDB)
 keytypes(horseDB)
 keytypes(cattleDB)
 
 # Extract keys from DBs
+human_keys <- keys(humanDB, keytype = "GENEID")
+pig_keys <- keys(pigDB, keytype = "GENEID")
 horse_keys <- keys(horseDB, keytype = "GENEID")
 cattle_keys <- keys(cattleDB, keytype = "GENEID")
 
 # Create transcript-to-gene dataframe for each species
+human_tx2gene <- AnnotationDbi::select(humanDB,
+                                       keys = human_keys,
+                                       keytype = "GENEID",
+                                       columns = "TXNAME")
+
+pig_tx2gene <- AnnotationDbi::select(pigDB,
+                                     keys = pig_keys,
+                                     keytype = "GENEID",
+                                     columns = "TXNAME")
+
 horse_tx2gene <- AnnotationDbi::select(horseDB,
                                        keys = horse_keys,
                                        keytype = "GENEID",
@@ -108,6 +143,16 @@ cattle_tx2gene <- AnnotationDbi::select(cattleDB,
                                         columns = "TXNAME")
 
 # tximport requires the order to be: transcript name followed by gene ID
+human_tx2gene %<>%
+    dplyr::select(TXNAME, GENEID)
+head(human_tx2gene)
+
+
+pig_tx2gene %<>%
+    dplyr::select(TXNAME, GENEID)
+head(pig_tx2gene)
+
+
 horse_tx2gene %<>%
     dplyr::select(TXNAME, GENEID)
 head(horse_tx2gene)
@@ -122,6 +167,12 @@ head(cattle_tx2gene)
 ##############################################################
 
 # Get paths to salmon files
+human_files <- list.files(humanDir, pattern = "quant.sf", full.names = TRUE)
+names(human_files) <- list.files(humanDir)
+
+pig_files <- list.files(pigDir, pattern = "quant.sf", full.names = TRUE)
+names(pig_files) <- list.files(pigDir)
+
 horse_files <- list.files(horseDir, pattern = "quant.sf", full.names = TRUE)
 names(horse_files) <- list.files(horseDir)
 
@@ -129,7 +180,19 @@ cattle_files <- list.files(cattleDir, pattern = "quant.sf", full.names = TRUE)
 names(cattle_files) <- list.files(cattleDir)
 
 # Import transcript-level estimates summarized to the gene-level
-# (it's the default when txOut = FALSE or not provided)
+# (it's the default when txOut = FALSE not provided)
+human_txi <- tximport(human_files,
+                      type = "salmon",
+                      tx2gene = human_tx2gene)
+names(human_txi)
+head(human_txi$abundance)
+
+
+pig_txi <- tximport(pig_files,
+                    type = "salmon",
+                    tx2gene = pig_tx2gene)
+names(pig_txi)
+head(pig_txi$abundance)
 horse_txi <- tximport(horse_files,
                       type = "salmon",
                       tx2gene = horse_tx2gene)
@@ -148,10 +211,20 @@ head(cattle_txi$abundance)
 ############################################
 
 # Convert gene-level TPM abundances into data frames
+human_TPM <- as.data.frame(human_txi$abundance)
+pig_TPM <- as.data.frame(pig_txi$abundance)
 horse_TPM <- as.data.frame(horse_txi$abundance)
 cattle_TPM <- as.data.frame(cattle_txi$abundance)
 
 # Remove non-expressed genes
+human_nozeros <- human_TPM[rowSums(human_TPM) > 0, ]
+dim(human_nozeros)
+dim(human_TPM)
+
+pig_nozeros <- pig_TPM[rowSums(pig_TPM) > 0, ]
+dim(pig_nozeros)
+dim(pig_TPM)
+
 horse_nozeros <- horse_TPM[rowSums(horse_TPM) > 0, ]
 dim(horse_nozeros)
 dim(horse_TPM)
@@ -161,6 +234,14 @@ dim(cattle_nozeros)
 dim(cattle_TPM)
 
 # Remove lowly expressed genes (< 1 TPM in approximately half of total samples)
+human_filt <- human_nozeros[rowSums(human_nozeros >= 1) >= 12, ]
+dim(human_filt)
+dim(human_nozeros)
+
+pig_filt <- pig_nozeros[rowSums(pig_nozeros >= 1) >= 12, ]
+dim(pig_filt)
+dim(pig_nozeros)
+
 horse_filt <- horse_nozeros[rowSums(horse_nozeros >= 1) >= 18, ]
 dim(horse_filt)
 dim(horse_nozeros)
@@ -172,6 +253,19 @@ dim(cattle_nozeros)
 ####################################
 # 07 Tidy filtered TPM data frames #
 ####################################
+
+human_filt %<>%
+    rownames_to_column(var = "Gene_RefSeqID") %>%
+    melt(value.name = "TPM") %>%
+    dplyr::rename(sample = variable) %>%
+    dplyr::mutate(species = "Human")
+
+pig_filt %<>%
+    rownames_to_column(var = "Gene_RefSeqID") %>%
+    melt(value.name = "TPM") %>%
+    dplyr::rename(sample = variable) %>%
+    dplyr::mutate(species = "Porcine")
+
 horse_filt %<>%
     rownames_to_column(var = "Gene_RefSeqID") %>%
     melt(value.name = "TPM") %>%
@@ -185,6 +279,8 @@ cattle_filt %<>%
     dplyr::mutate(species = "Bovine")
 
 # Check reformatted data frames
+head(human_filt)
+head(pig_filt)
 head(horse_filt)
 head(cattle_filt)
 
@@ -192,12 +288,16 @@ head(cattle_filt)
 # 08 Row-bind filtered TPM data frames from all species #
 #########################################################
 
-horse_filt %>%
-dplyr::bind_rows(cattle_filt) %>%
+human_filt %>%
+    dplyr::bind_rows(pig_filt) %>%
+    dplyr::bind_rows(horse_filt) %>%
+    dplyr::bind_rows(cattle_filt) %>%
     as.tibble() -> TPM_filt_all
 
 # Check total number of rows
 length(TPM_filt_all$Gene_RefSeqID) ==
+    length(human_filt$Gene_RefSeqID) +
+    length(pig_filt$Gene_RefSeqID) +
     length(horse_filt$Gene_RefSeqID) +
     length(cattle_filt$Gene_RefSeqID)
 
@@ -226,6 +326,46 @@ TPM_filt_all$labels <- TPM_filt_all$sample
 # Correct plotting labels
 TPM_filt_all$labels %<>%
     str_replace("_quant.sf", "") %>%
+    str_replace("NGD_(FALSE|TRUE)_", "") %>%
+    str_replace("GD_(FALSE|TRUE)_", "") %>%
+    str_replace("Subj10", "Hsa_P10_D") %>%
+    str_replace("Subj11", "Hsa_P11_D") %>%
+    str_replace("Subj12", "Hsa_P12_D") %>%
+    str_replace("Subj13", "Hsa_S01_U") %>%
+    str_replace("Subj14", "Hsa_S02_U") %>%
+    str_replace("Subj15", "Hsa_S03_U") %>%
+    str_replace("Subj16", "Hsa_S04_U") %>%
+    str_replace("Subj17", "Hsa_S05_U") %>%
+    str_replace("Subj18", "Hsa_S06_U") %>%
+    str_replace("Subj19", "Hsa_P19_U") %>%
+    str_replace("Subj20", "Hsa_P20_U") %>%
+    str_replace("Subj21", "Hsa_P21_U") %>%
+    str_replace("Subj22", "Hsa_P22_U") %>%
+    str_replace("Subj23", "Hsa_P23_U") %>%
+    str_replace("Subj24", "Hsa_P24_U") %>%
+    str_replace("Subj1", "Hsa_S01_D") %>%
+    str_replace("Subj2", "Hsa_S02_D") %>%
+    str_replace("Subj3", "Hsa_S03_D") %>%
+    str_replace("Subj4", "Hsa_S04_D") %>%
+    str_replace("Subj5", "Hsa_S05_D") %>%
+    str_replace("Subj6", "Hsa_S06_D") %>%
+    str_replace("Subj7", "Hsa_P07_D") %>%
+    str_replace("Subj8", "Hsa_P08_D") %>%
+    str_replace("Subj9", "Hsa_P09_D") %>%
+    str_replace("7197", "Ssc_01") %>%
+    str_replace("7199", "Ssc_02") %>%
+    str_replace("7210", "Ssc_03") %>%
+    str_replace("7312", "Ssc_04") %>%
+    str_replace("7349", "Ssc_05") %>%
+    str_replace("7413", "Ssc_06") %>%
+    str_replace("7437", "Ssc_07") %>%
+    str_replace("7439", "Ssc_08") %>%
+    str_replace("7467", "Ssc_09") %>%
+    str_replace("7468", "Ssc_10") %>%
+    str_replace("7472", "Ssc_11") %>%
+    str_replace("7474", "Ssc_12") %>%
+    str_replace("(CT|C)", "_U") %>%
+    str_replace("(GD|T)", "_D") %>%
     str_replace("A", "") %>%
     str_replace("_W-1_F", "") %>%
     str_replace("6511", "Bta_01_U") %>%
@@ -281,7 +421,19 @@ unique(TPM_filt_all$labels)
 
 # Convert labels into factors and order them
 TPM_filt_all$labels %<>%
-    factor(levels = c("Eca_T01_U", "Eca_T02_U", "Eca_T03_U", "Eca_T04_U",
+    factor(levels = c("Hsa_S01_U", "Hsa_S02_U", "Hsa_S03_U", "Hsa_S04_U",
+                      "Hsa_S05_U", "Hsa_S06_U", "Hsa_P19_U", "Hsa_P20_U",
+                      "Hsa_P21_U", "Hsa_P22_U", "Hsa_P23_U", "Hsa_P24_U",
+                      "Hsa_S01_D", "Hsa_S02_D", "Hsa_S03_D", "Hsa_S04_D",
+                      "Hsa_S05_D", "Hsa_S06_D", "Hsa_P07_D", "Hsa_P08_D",
+                      "Hsa_P09_D", "Hsa_P10_D", "Hsa_P11_D", "Hsa_P12_D",
+                      "Ssc_01_U", "Ssc_02_U", "Ssc_03_U", "Ssc_04_U",
+                      "Ssc_05_U", "Ssc_06_U", "Ssc_07_U", "Ssc_08_U",
+                      "Ssc_09_U", "Ssc_10_U", "Ssc_11_U", "Ssc_12_U",
+                      "Ssc_01_D", "Ssc_02_D", "Ssc_03_D", "Ssc_04_D",
+                      "Ssc_05_D", "Ssc_06_D", "Ssc_07_D", "Ssc_08_D",
+                      "Ssc_09_D", "Ssc_10_D", "Ssc_11_D", "Ssc_12_D",
+                      "Eca_T01_U", "Eca_T02_U", "Eca_T03_U", "Eca_T04_U",
                       "Eca_T05_U", "Eca_T06_U", "Eca_T07_U", "Eca_T08_U",
                       "Eca_T09_U", "Eca_T10_U", "Eca_T11_U", "Eca_T12_U",
                       "Eca_S13_U", "Eca_T14_U", "Eca_T15_U", "Eca_T16_U",
@@ -308,8 +460,11 @@ TPM_filt_all$treatment <- TPM_filt_all$labels
 TPM_filt_all$treatment %<>%
     stringr::str_replace("Bta_\\d\\d_", "") %>%
     stringr::str_replace("Eca_(T|S)\\d\\d_", "") %>%
-    stringr::str_replace("U", "Undepleted") %>% 
-    factor()
+    stringr::str_replace("Hsa_(S|P)\\d\\d_", "") %>%
+    stringr::str_replace("Ssc_\\d\\d_", "") %>%
+    stringr::str_replace("U", "Undepleted") %>%
+    stringr::str_replace("D", "Globin depleted") %>%
+    factor(levels = c("Undepleted", "Globin depleted"))
 
 # Check treatment factors
 levels(TPM_filt_all$treatment)

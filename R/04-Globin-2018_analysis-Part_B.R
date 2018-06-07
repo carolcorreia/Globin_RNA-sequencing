@@ -5,7 +5,7 @@
 
 # Author: Carolina N. Correia
 # GitHub Repository DOI: 
-# Date: May 29th 2018
+# Date: May 31st 2018
 
 ##################################
 # 14 Working directory and RData #
@@ -46,26 +46,31 @@ library(skimr)
 #devtools::install_github("hadley/colformat")
 #devtools::install_github("ropenscilabs/skimr")
 
-###############################
-# 16 Keep genes with TPM >= 1 #
-###############################
-
-TPM_filt_all %>% 
-    dplyr::group_by(labels) %>% 
-    dplyr::count(TPM >= 1) %>% 
-    dplyr::filter(`TPM >= 1` == TRUE) %>% 
-    write_csv(file.path(paste0(tablesDir, "/Expressed-genes-sample.csv")),
-              col_names = TRUE)
-
-TPM_filt_all %<>% 
-    dplyr::group_by(labels) %>% 
-    dplyr::filter(TPM >= 1)
-
 ########################################################
-# 17 Summary statistics per treatment for each species #
+# 16 Summary statistics per treatment for each species #
 ########################################################
 
 # Calculate summary stats
+TPM_filt_all %>%
+    dplyr::filter(c(treatment == "Undepleted"
+                    & species == "Human")) %>%
+    skim() -> human_U
+
+TPM_filt_all %>%
+    dplyr::filter(c(treatment == "Globin depleted"
+                    & species == "Human")) %>%
+    skim() -> human_D
+
+TPM_filt_all %>%
+    dplyr::filter(c(treatment == "Undepleted"
+                    & species == "Porcine")) %>%
+    skim() -> pig_U
+
+TPM_filt_all %>%
+    dplyr::filter(c(treatment == "Globin depleted"
+                    & species == "Porcine")) %>%
+    skim() -> pig_D
+
 TPM_filt_all %>%
     dplyr::filter(c(treatment == "Undepleted"
                     & species == "Equine")) %>%
@@ -77,12 +82,18 @@ TPM_filt_all %>%
     skim() -> cattle_U
 
 # Visualise stats
+skim(human_U)
+skim(human_D)
+skim(pig_U)
+skim(pig_D)
 skim(horse_U)
 skim(cattle_U)
 
 # Export stats for all subsets
-vars_summary <- list(horse_U, cattle_U)
-files_summ <- paste0(c("horse_U", "cattle_U"), "_stats.csv")
+vars_summary <- list(human_U, human_D, pig_U, pig_D, horse_U, cattle_U)
+files_summ <- paste0(c("human_U", "human_D",
+                       "pig_U", "pig_D",
+                       "horse_U", "cattle_U"), "_stats.csv")
 
 path_summ <- file.path(paste0(tablesDir, "/", files_summ))
 
@@ -91,13 +102,13 @@ purrr::pwalk(list(vars_summary, path_summ),
              col_names = TRUE)
 
 ########################################################
-# 18 Plot: density of filtered gene counts per library #
+# 17 Plot: density of filtered gene counts per library #
 ########################################################
 
 # Joyplot of density gene-level TPM after filtering
 TPM_filt_all %>% 
     mutate(reverse_labels = fct_rev(labels)) %>% 
-    ggplot(aes(x = log10(TPM),
+    ggplot(aes(x = log10(TPM + 1),
                y = reverse_labels)) +
         geom_joy(aes(fill = treatment), alpha = 0.5) +
         scale_fill_manual("Treatment",
@@ -106,7 +117,7 @@ TPM_filt_all %>%
         ggtitle("2018 analysis") +
         facet_wrap(~species, ncol = 2, scales = "free_y") +
         ylab("Density of gene-level TPM \nestimates per sample") +
-        xlab(expression(paste(log[10], "TPM"))) -> joy_density
+        xlab(expression(paste(log[10], "TPM + 1"))) -> joy_density
 
 # Check plot
 joy_density
@@ -123,12 +134,13 @@ ggsave("joy_density.pdf",
        units     = "in")
 
 ##########################
-# 19 Subset globin genes #
+# 18 Subset globin genes #
 ##########################
 
 TPM_filt_all %>% 
     dplyr::filter(Gene_RefSeqID %in%
-                      c("HBA", "HBA1", "HBA2", "HBB")) -> TPM_globins
+                      c("HBA", "HBA1", "HBA2", "HBB",
+                        "LOC100737768", "LOC110259958")) -> TPM_globins
 
 # Check IDs
 unique(TPM_globins$Gene_RefSeqID)
@@ -144,17 +156,21 @@ TPM_globins %<>%
                                     gene_symbol == "HBA",
                                 "HBA (HBA2)", gene_symbol))
 
-# Create factors
 TPM_globins$gene_symbol %<>% 
-    factor(levels = c("HBA (HBA1)", "HBA2",
-           "HBA1", "HBA (HBA2)", "HBB"))
+    str_replace("LOC100737768","LOC100737768 (HBA)") %>%
+    str_replace("LOC110259958","LOC110259958 (HBA)") %>%
+    factor(levels = c("HBA (HBA1)", "HBA1", 
+                      "HBA (HBA2)", "HBA2",
+                      "LOC100737768 (HBA)",
+                      "LOC110259958 (HBA)",
+                      "HBB"))
 
 # Check factors
 levels(TPM_globins$gene_symbol)
 View(TPM_globins)
 
 ##################################################
-# 20 Summary stats of globin genes per treatment #
+# 19 Summary stats of globin genes per treatment #
 ##################################################
 
 # Cattle
@@ -162,21 +178,63 @@ TPM_globins %>%
     dplyr::filter(species == "Bovine") %>% 
     group_by(gene_symbol) %>%
     skim_to_wide() %>% 
-    dplyr::mutate(species = "Bovine") -> globin_stats 
+    dplyr::mutate(species = "Bovine",
+                  treatment = "Undepleted") -> globin_stats 
 
 # Horse
 TPM_globins %>%
     dplyr::filter(species == "Equine") %>% 
     group_by(gene_symbol) %>% 
     skim_to_wide() %>% 
-    dplyr::mutate(species = "Equine") %>%
+    dplyr::mutate(species = "Equine",
+                  treatment = "Undepleted") %>%
+    dplyr::bind_rows(globin_stats) -> globin_stats
+
+# Pig Undepleted
+TPM_globins %>%
+    dplyr::filter(c(species == "Porcine" &
+                        treatment == "Undepleted")) %>% 
+    group_by(gene_symbol) %>% 
+    skim_to_wide() %>% 
+    dplyr::mutate(species = "Porcine",
+                  treatment = "Undepleted") %>%
+    dplyr::bind_rows(globin_stats) -> globin_stats
+
+# Pig Depleted
+TPM_globins %>%
+    dplyr::filter(c(species == "Porcine" &
+                        treatment == "Globin depleted")) %>% 
+    group_by(gene_symbol) %>% 
+    skim_to_wide() %>% 
+    dplyr::mutate(species = "Porcine",
+                  treatment = "Globin depleted") %>%
+    dplyr::bind_rows(globin_stats) -> globin_stats
+
+# Human Undepleted
+TPM_globins %>%
+    dplyr::filter(c(species == "Human" &
+                        treatment == "Undepleted")) %>% 
+    group_by(gene_symbol) %>% 
+    skim_to_wide() %>% 
+    dplyr::mutate(species = "Human",
+                  treatment = "Undepleted") %>%
+    dplyr::bind_rows(globin_stats) -> globin_stats
+
+# Human Depleted
+TPM_globins %>%
+    dplyr::filter(c(species == "Human" &
+                        treatment == "Globin depleted")) %>% 
+    group_by(gene_symbol) %>% 
+    skim_to_wide() %>% 
+    dplyr::mutate(species = "Human",
+                  treatment = "Globin depleted") %>%
     dplyr::bind_rows(globin_stats) -> globin_stats
 
 # Check summary stats data frame
 View(globin_stats)
 
 #####################################
-# 21 Correct globin summary factors #
+# 20 Correct globin summary factors #
 #####################################
 
 # Species
@@ -190,21 +248,22 @@ levels(globin_stats$species)
 
 # Gene symbol
 globin_stats$gene_symbol %<>% 
-    factor() %>%
-    forcats::fct_inorder() %>% 
-    forcats::fct_relevel("HBB", after = Inf)
+    factor(levels = c("HBA (HBA1)", "HBA1", 
+                      "HBA (HBA2)", "HBA2",
+                      "LOC100737768 (HBA)",
+                      "LOC110259958 (HBA)",
+                      "HBB"))
 
 # Check gene symbol factors
 levels(globin_stats$gene_symbol)
 
 ###########################################
-# 22 Tidy globins summary and export data #
+# 21 Tidy globins summary and export data #
 ###########################################
 
 globin_stats %>% 
     dplyr::filter(variable == "TPM") %>% 
     dplyr::select(-c(type, hist)) %>% 
-    dplyr::mutate(treatment = "Undepleted") %>% 
     dplyr::mutate(mean = as.numeric(mean),
                   sd = as.numeric(sd)) -> globin_tidy
 
@@ -217,11 +276,11 @@ write_csv(globin_tidy,
           col_names = TRUE)
 
 ##################################################
-# 23 Plot: Distribution of globin gene-level TPM #
+# 22 Plot: Distribution of globin gene-level TPM #
 ##################################################
 
 jitter_plot <- ggplot(TPM_globins) +
-    geom_jitter(aes(gene_symbol, log2(TPM),
+    geom_jitter(aes(gene_symbol, log2(TPM + 1),
                     colour = treatment),
                 size = 3,
                 alpha = 0.7) +
@@ -246,7 +305,7 @@ jitter_plot <- ggplot(TPM_globins) +
                                      angle = 45,
                                      hjust = 1)) +
     xlab(NULL) +
-    ylab(expression(paste(log[2], "TPM"))) +
+    ylab(expression(paste(log[2], "TPM + 1"))) +
     labs(caption = expression(paste("Error bars represent the ",
                                     log[2], "(abs(mean ± SD))")))
 
@@ -265,7 +324,7 @@ ggsave("jitter_plot.pdf",
        units     = "in")
 
 ############################################
-# 24 Proportion of globin genes per sample #
+# 23 Proportion of globin genes per sample #
 ############################################
 
 # Get total TPM per sample
@@ -297,14 +356,19 @@ globin_proportion %<>%
 globin_proportion$treatment %<>% 
     stringr::str_replace("Bta_\\d\\d_", "") %>% 
     stringr::str_replace("Eca_(T|S)\\d\\d_", "") %>% 
-    stringr::str_replace("U", "Undepleted")
+    stringr::str_replace("Hsa_(S|P)\\d\\d_", "") %>% 
+    stringr::str_replace("Ssc_\\d\\d_", "") %>%
+    stringr::str_replace("U", "Undepleted") %>% 
+    stringr::str_replace("D", "Globin depleted")
 
 # Add species column
 globin_proportion$species <- globin_proportion$labels
 
 globin_proportion$species %<>% 
     stringr::str_replace("Bta_\\d\\d_(U|D)", "Bovine") %>% 
-    stringr::str_replace("Eca_(T|S)\\d\\d_(U|D)", "Equine")
+    stringr::str_replace("Eca_(T|S)\\d\\d_(U|D)", "Equine") %>% 
+    stringr::str_replace("Hsa_(S|P)\\d\\d_(U|D)", "Human") %>% 
+    stringr::str_replace("Ssc_\\d\\d_(U|D)", "Porcine")
 
 # Export data
 write_csv(globin_proportion,
@@ -312,8 +376,28 @@ write_csv(globin_proportion,
           col_names = TRUE)
 
 ################################################
-# 25 Proportion of globin genes: summary stats #
+# 24 Proportion of globin genes: summary stats #
 ################################################
+
+globin_proportion %>% 
+    dplyr::filter(species == "Human"
+                  & treatment == "Undepleted") %>% 
+    skim()
+
+globin_proportion %>% 
+    dplyr::filter(species == "Human"
+                  & treatment == "Globin depleted") %>% 
+    skim()
+
+globin_proportion %>% 
+    dplyr::filter(species == "Porcine"
+                  & treatment == "Undepleted") %>% 
+    skim()
+
+globin_proportion %>% 
+    dplyr::filter(species == "Porcine"
+                  & treatment == "Globin depleted") %>% 
+    skim()
 
 globin_proportion %>% 
     dplyr::filter(species == "Equine"
@@ -326,7 +410,7 @@ globin_proportion %>%
     skim()
 
 ########################
-# 26 Save .RData files #
+# 25 Save .RData files #
 ########################
 
 # Entire environment
@@ -339,7 +423,7 @@ save(jitter_plot,
      file = "Plots-2018-analysis.rda")
 
 #########################
-# 27 Get R session info #
+# 26 Get R session info #
 #########################
 
 devtools::session_info()
