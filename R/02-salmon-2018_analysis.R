@@ -5,7 +5,7 @@
 
 # Author: Carolina N. Correia
 # GitHub Repository DOI: 
-# Date: August 29th 2017
+# Date: June 20th 2018
 
 # Load packages
 library(plyr)
@@ -19,13 +19,11 @@ library(devtools)
 setwd("/Users/ccorreia/Dropbox/CSF/Animal_Genomics/Globin/salmon/summary_quant")
 
 # Define variables for specific directories
-summDir <- getwd()
-tablesDir <- "/Users/ccorreia/Dropbox/CSF/Animal_Genomics/Globin/tables"
-horseFile <- "/Users/ccorreia/Dropbox/CSF/Animal_Genomics/Globin/salmon/UCSC_summary_quant/UCSC_summary_horse.txt"
+summDir <- "/Users/ccorreia/Dropbox/CSF/Animal_Genomics/Globin/salmon/summary_quant/2018"
+tablesDir <- "/Users/ccorreia/Dropbox/CSF/Animal_Genomics/Globin/tables_2018"
 
 # Create a vector with full paths to the salmon summary files
-summ_files <- c(list.files(summDir, full.names = TRUE),
-                horseFile)
+summ_files <- c(list.files(summDir, full.names = TRUE))
 
 # Import and row-bind all files into a tibble
 salmon_stats <- map_df(summ_files, ~ read_table2(.x))
@@ -220,13 +218,10 @@ salmon_stats %>%
     dplyr::filter(c(treatment == "Undepleted"
                     & species == "Bovine")) %>%
     skim() %>%
-    dplyr::filter(var %in% vars_to_keep) %>% 
+    dplyr::filter(variable %in% vars_to_keep) %>% 
     dplyr::filter(stat == "mean") %>% 
-    dplyr::mutate(stat = paste(stat, level, sep = '_')) %>% 
-    dplyr::select(-c(type, level)) %>% 
-    dplyr::mutate(var = paste(var, stat, sep = '_')) %>% 
-    dplyr::select(-stat) %>% 
-    tidyr::spread(var, value) %>% 
+    dplyr::select(-c(type, level, stat, formatted)) %>% 
+    tidyr::spread(variable, value) %>% 
     dplyr::mutate(species = "Bovine") %>% 
     dplyr::mutate(treatment = "Undepleted") %>% 
     dplyr::mutate(library_type = "Inward stranded forward") -> salmon_summary
@@ -235,13 +230,10 @@ salmon_stats %>%
     dplyr::filter(c(treatment == "Undepleted"
                     & species == "Equine")) %>%
     skim() %>%
-    dplyr::filter(var %in% vars_to_keep) %>% 
+    dplyr::filter(variable %in% vars_to_keep) %>% 
     dplyr::filter(stat == "mean") %>% 
-    dplyr::mutate(stat = paste(stat, level, sep = '_')) %>% 
-    dplyr::select(-c(type, level)) %>% 
-    dplyr::mutate(var = paste(var, stat, sep = '_')) %>% 
-    dplyr::select(-stat) %>% 
-    tidyr::spread(var, value) %>% 
+    dplyr::select(-c(type, level, stat, formatted)) %>% 
+    tidyr::spread(variable, value) %>% 
     dplyr::mutate(species = "Equine") %>% 
     dplyr::mutate(treatment = "Undepleted") %>% 
     dplyr::mutate(library_type = "Unstranded") %>% 
@@ -251,13 +243,10 @@ salmon_stats %>%
     dplyr::filter(c(treatment == "Globin depleted"
                     & species == "Porcine")) %>%
     skim() %>%
-    dplyr::filter(var %in% vars_to_keep) %>% 
+    dplyr::filter(variable %in% vars_to_keep) %>% 
     dplyr::filter(stat == "mean") %>% 
-    dplyr::mutate(stat = paste(stat, level, sep = '_')) %>% 
-    dplyr::select(-c(type, level)) %>% 
-    dplyr::mutate(var = paste(var, stat, sep = '_')) %>% 
-    dplyr::select(-stat) %>% 
-    tidyr::spread(var, value) %>% 
+    dplyr::select(-c(type, level, stat, formatted)) %>% 
+    tidyr::spread(variable, value) %>% 
     dplyr::mutate(species = "Porcine") %>% 
     dplyr::mutate(treatment = "Globin depleted") %>% 
     dplyr::mutate(library_type = "Inward unstranded") %>% 
@@ -267,13 +256,10 @@ salmon_stats %>%
     dplyr::filter(c(treatment == "Undepleted"
                     & species == "Porcine")) %>%
     skim() %>%
-    dplyr::filter(var %in% vars_to_keep) %>% 
+    dplyr::filter(variable %in% vars_to_keep) %>% 
     dplyr::filter(stat == "mean") %>% 
-    dplyr::mutate(stat = paste(stat, level, sep = '_')) %>% 
-    dplyr::select(-c(type, level)) %>% 
-    dplyr::mutate(var = paste(var, stat, sep = '_')) %>% 
-    dplyr::select(-stat) %>% 
-    tidyr::spread(var, value) %>% 
+    dplyr::select(-c(type, level, stat, formatted)) %>% 
+    tidyr::spread(variable, value) %>% 
     dplyr::mutate(species = "Porcine") %>% 
     dplyr::mutate(treatment = "Undepleted") %>% 
     dplyr::mutate(library_type = "Inward unstranded") %>% 
@@ -283,13 +269,10 @@ salmon_stats %>%
     dplyr::filter(c(treatment == "Globin depleted"
                     & species == "Human")) %>%
     skim() %>%
-    dplyr::filter(var %in% vars_to_keep) %>% 
+    dplyr::filter(variable %in% vars_to_keep) %>% 
     dplyr::filter(stat == "mean") %>% 
-    dplyr::mutate(stat = paste(stat, level, sep = '_')) %>% 
-    dplyr::select(-c(type, level)) %>% 
-    dplyr::mutate(var = paste(var, stat, sep = '_')) %>% 
-    dplyr::select(-stat) %>% 
-    tidyr::spread(var, value) %>% 
+    dplyr::select(-c(type, level, stat, formatted)) %>% 
+    tidyr::spread(variable, value) %>% 
     dplyr::mutate(species = "Human") %>% 
     dplyr::mutate(treatment = "Globin depleted") %>% 
     dplyr::mutate(library_type = "Inward unstranded") %>% 
@@ -299,13 +282,10 @@ salmon_stats %>%
     dplyr::filter(c(treatment == "Undepleted"
                     & species == "Human")) %>%
     skim() %>%
-    dplyr::filter(var %in% vars_to_keep) %>% 
+    dplyr::filter(variable %in% vars_to_keep) %>% 
     dplyr::filter(stat == "mean") %>% 
-    dplyr::mutate(stat = paste(stat, level, sep = '_')) %>% 
-    dplyr::select(-c(type, level)) %>% 
-    dplyr::mutate(var = paste(var, stat, sep = '_')) %>% 
-    dplyr::select(-stat) %>% 
-    tidyr::spread(var, value) %>% 
+    dplyr::select(-c(type, level, stat, formatted)) %>% 
+    tidyr::spread(variable, value) %>%  
     dplyr::mutate(species = "Human") %>% 
     dplyr::mutate(treatment = "Undepleted") %>% 
     dplyr::mutate(library_type = "Inward unstranded") %>% 
@@ -313,9 +293,9 @@ salmon_stats %>%
 
 # Reorder columns in summary data frame
 salmon_summary %<>% 
-    dplyr::rename(Observed_fragments_mean = Observed_fragments_mean_.all,
-                  Mapped_fragments_mean = Mapped_fragments_mean_.all,
-                  `Mapping_rate(%)_mean` = `Mapping_rate(%)_mean_.all`) %>%
+    dplyr::rename(Observed_fragments_mean = Observed_fragments,
+                  Mapped_fragments_mean = Mapped_fragments,
+                  `Mapping_rate(%)_mean` = `Mapping_rate(%)`) %>%
     dplyr::select(species, treatment,
                   library_type, Observed_fragments_mean,
                   everything())
