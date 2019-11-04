@@ -2,7 +2,7 @@
 
 RNA Sequencing (RNA-Seq) Reveals Extremely Low Levels of Reticulocyte-Derived Globin Gene Transcripts in Peripheral Blood From Horses (Equus caballus) and Cattle (Bos taurus)
 
-Data: https://www.ebi.ac.uk/ena/data/view/PRJEB27764
+Data: https://www.ebi.ac.uk/ena/browser/view/PRJEB27764
 
 Publication: https://doi.org/10.3389/fgene.2018.00278
 
